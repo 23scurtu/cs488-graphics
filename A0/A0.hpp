@@ -33,6 +33,8 @@ protected:
 	void mapVboDataToShaderAttributeLocation();
 	void uploadUniformsToShader();
 
+	void reset_shape();
+
 	GLuint m_vao_triangle; // Vertex Array Object
 	GLuint m_vbo_triangle; // Vertex Buffer Object
 	ShaderProgram m_shader;
