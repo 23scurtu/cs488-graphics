@@ -30,11 +30,13 @@ size_t Maze::getDim() const
 
 int Maze::getValue( int x, int y ) const
 {
+	if(x < 0 || y < 0 || x >= m_dim || y >= m_dim) return 0;
 	return m_values[ y * m_dim + x ];
 }
 
 void Maze::setValue( int x, int y, int h )
 {
+	if(x < 0 || y < 0 || x >= m_dim || y >= m_dim) return;
 	m_values[ y * m_dim + x ] = h;
 }
 

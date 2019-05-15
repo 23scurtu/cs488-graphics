@@ -9,6 +9,7 @@
 #include "cs488-framework/ShaderProgram.hpp"
 
 #include "maze.hpp"
+#include "maze_mesh.hpp"
 
 class A1 : public CS488Window {
 public:
@@ -28,6 +29,9 @@ protected:
 	virtual bool mouseScrollEvent(double xOffSet, double yOffSet) override;
 	virtual bool windowResizeEvent(int width, int height) override;
 	virtual bool keyInputEvent(int key, int action, int mods) override;
+
+	void reset_maze();
+	void dig();
 
 private:
 	void initGrid();
@@ -49,4 +53,20 @@ private:
 
 	float colour[3];
 	int current_col;
+
+	Maze* maze = nullptr;
+	Maze* original_maze = nullptr;
+
+	MazeMesh* maze_mesh = nullptr;
+	int dragging = 0;
+	glm::vec2 last_mouse_pos;
+
+	Square* floor = nullptr;
+	Sphere* avatar = nullptr;
+	glm::vec2 avatar_pos = glm::vec2(-1,-1);
+	bool move_commands[4]{false, false, false, false};
+	bool wall_break = false;
+
+	float last_dx = 0.0f;
+	float scale = 1.0f;
 };
