@@ -26,8 +26,5 @@ class GraphicsObject
     void setTransform(const glm::mat4 &transform){ this->transform = transform; }
     glm::mat4 getTransform(){ return transform; }
 
-    void draw(ShaderProgram &shader, glm::mat4 parent = glm::mat4(1.0))
-    {
-        mesh->draw(shader, parent*transform );
-    }
+    void draw(ShaderProgram &shader, glm::mat4 parent = glm::mat4(1.0)){ mesh->draw(shader, parent*transform ); }
 };

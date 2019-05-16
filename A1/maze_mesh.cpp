@@ -45,11 +45,9 @@ void MazeMesh::setMaze(Maze &maze)
 
 void MazeMesh::setWallColor(glm::vec3 color)
 { 
-    // cout << color.b << endl;
     wall_color = color; 
 
     // TODO Make color part of graphics object?
-    //for(GraphicsObject &wall : walls) wall.setColor(color);
     wall_mesh->setColor(color);
 }
 
@@ -69,5 +67,4 @@ void MazeMesh::changeWallHeight(int d_height)
     wall_height += d_height;
 
     wall_mesh->setScale(vec3(1,wall_height,1));
-    // wall_mesh->applyTranslation(vec3(0, d_height, 0));
 }

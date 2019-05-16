@@ -58,17 +58,23 @@ private:
 	Maze* original_maze = nullptr;
 
 	MazeMesh* maze_mesh = nullptr;
-	int dragging = 0;
-	glm::vec2 last_mouse_pos;
-
 	Square* floor = nullptr;
 	Sphere* avatar = nullptr;
+	float avatar_size = 1.0f;
+
+	int dragging = 0;
+	glm::vec2 last_mouse_pos;
+	float last_dx = 0.0f;
+
 	glm::vec2 avatar_pos = glm::vec2(-1,-1);
 	bool move_commands[4]{false, false, false, false};
 	bool wall_break = false;
 
-	float last_dx = 0.0f;
-	float scale = 1.0f;
 	bool maze_generated = false;
 	float maze_rotation = 0.0f;
+	float scale = 1.0f;
+
+	vec3 maze_color = vec3(0,0,0.75);//vec3(0.9,0.5,0);
+	vec3 avatar_color = vec3(1,0,0);
+	vec3 floor_color = vec3(0.9,0.9,0.9);
 };

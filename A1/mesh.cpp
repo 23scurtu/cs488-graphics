@@ -57,6 +57,10 @@ void Mesh::initBuffers(vector<float> vertices, vector<unsigned int> indices)
     glBufferData( GL_ARRAY_BUFFER, vertices.size()*sizeof(float),
         &vertices[0], GL_STATIC_DRAW );
 
+    glGenBuffers( 1, &mesh_ebo );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
     // Specify the means of extracting the position values properly.
     // GLint posAttrib = shader.getAttribLocation( "position" );
     glEnableVertexAttribArray( VERT );
@@ -100,7 +104,10 @@ void Mesh::draw(ShaderProgram &shader, glm::mat4 parent)
 
         col_uni = shader.getUniformLocation( "colour" );
         glUniform3f( col_uni, color.r, color.g, color.b );
-        //glDrawElements(GL_TRIANGLES, indicies.size(), GL_UNSIGNED_INT, 0);
+
+        // Indicies are ready to use but disabled for now.  
+        // Uncomment line below and comment glDrawArrays to enable.
+        // glDrawElements(GL_TRIANGLES, indicies.size(), GL_UNSIGNED_INT, 0);
         glDrawArrays(GL_TRIANGLES, 0, vertices.size()/3);
 
         // Draw the cubes
@@ -126,4 +133,63 @@ vector<float> Cube::initVertices()
     return verts;
 }
 
+vector<float> Square::initVertices(size_t width){  vector<float> result{-1, -1, 0,
+                                                                        1, -1, 0,
+                                                                        1, 1, 0,
+                                                                        
+                                                                        -1, -1, 0,
+                                                                        1, 1, 0,
+                                                                        -1, 1, 0 };
+                                                for(float &x : result){ x *=width/2; }
+                                                return result; }
 
+vector<float> Sphere::initVertices(float radius, size_t longs, size_t lats)
+{  
+    vector<float> result;
+
+    float lat_angle = 2.0f*PI/lats;
+    float lon_angle = PI/longs;
+
+    for(size_t x = 0; x < lats; x++)
+    {
+        for(size_t y = 0; y < longs; y++)
+        {
+            float lat = lat_angle * x;
+            float lon = lon_angle * y;
+
+            auto p1 = glm::vec3(radius * cos(lat) * cos(lon),
+                                radius * cos(lat) * sin(lon),
+                                radius * sin(lat));
+            auto p2 = glm::vec3(radius * cos(lat + lat_angle) * cos(lon),
+                                radius * cos(lat + lat_angle) * sin(lon),
+                                radius * sin(lat + lat_angle));
+            auto p3 = glm::vec3(radius * cos(lat + lat_angle) * cos(lon + lon_angle),
+                                radius * cos(lat + lat_angle) * sin(lon + lon_angle),
+                                radius * sin(lat + lat_angle));
+            auto p4 = glm::vec3(radius * cos(lat) * cos(lon + lon_angle),
+                                radius * cos(lat) * sin(lon + lon_angle),
+                                radius * sin(lat));
+            
+            result.push_back(p1.x);
+            result.push_back(p1.y);
+            result.push_back(p1.z);
+            result.push_back(p2.x);
+            result.push_back(p2.y);
+            result.push_back(p2.z);
+            result.push_back(p3.x);
+            result.push_back(p3.y);
+            result.push_back(p3.z);
+
+            result.push_back(p1.x);
+            result.push_back(p1.y);
+            result.push_back(p1.z);
+            result.push_back(p3.x);
+            result.push_back(p3.y);
+            result.push_back(p3.z);
+            result.push_back(p4.x);
+            result.push_back(p4.y);
+            result.push_back(p4.z);
+        }
+    }
+    return result; 
+}
