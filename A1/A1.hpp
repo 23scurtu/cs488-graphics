@@ -69,4 +69,6 @@ private:
 
 	float last_dx = 0.0f;
 	float scale = 1.0f;
+	bool maze_generated = false;
+	float maze_rotation = 0.0f;
 };

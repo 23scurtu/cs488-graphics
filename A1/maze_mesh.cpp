@@ -11,12 +11,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/transform.hpp>
+#include <iostream>
 
 using namespace glm;
 using namespace std;
 
 MazeMesh::MazeMesh(Maze &maze)
 {
+    wall_mesh = new Cube();
     setMaze(maze);
 }
 
@@ -29,8 +31,9 @@ void MazeMesh::setMaze(Maze &maze)
     for (i=0; i<m_dim; i++) {
 		for (j=0; j<m_dim; j++) { 
 			if ( maze.getValue(i,j)==1 ) {
-                walls.push_back(Cube());
-                walls.back().applyTranslation(glm::vec3(i-m_dim/2,0,j-m_dim/2));     
+                mat4 W;
+                W = glm::translate( W, glm::vec3(i-m_dim/2,0,j-m_dim/2));
+                walls.push_back(GraphicsObject(wall_mesh, W)); 
 			} else {
 				// Do Nothing
 			}
@@ -42,8 +45,12 @@ void MazeMesh::setMaze(Maze &maze)
 
 void MazeMesh::setWallColor(glm::vec3 color)
 { 
+    // cout << color.b << endl;
     wall_color = color; 
-    for(Cube &wall : walls) wall.setColor(color);
+
+    // TODO Make color part of graphics object?
+    //for(GraphicsObject &wall : walls) wall.setColor(color);
+    wall_mesh->setColor(color);
 }
 
 glm::vec3 MazeMesh::getWallColor()
@@ -53,14 +60,14 @@ glm::vec3 MazeMesh::getWallColor()
 
 void MazeMesh::draw(ShaderProgram &shader, mat4 parent)
 {
-    // For now create cube
-    // Cube cube;
+    for (GraphicsObject &wall: walls) wall.draw(shader, parent);
+}
 
-    // cube.applyTranslation(glm::vec3(5,0,0));
-    // cube.draw(shader);
+void MazeMesh::changeWallHeight(int d_height)
+{
+    if(int(wall_height) + d_height <= 0) return;
+    wall_height += d_height;
 
-    // TODO Remove maze_rotation - no longer needed
-    // glm::mat4 rotation = glm::rotate(maze_rotation, glm::vec3(0.0f, 1.0f, 0.0f));
-
-    for (Cube &wall: walls) wall.draw(shader, parent);
+    wall_mesh->setScale(vec3(1,wall_height,1));
+    // wall_mesh->applyTranslation(vec3(0, d_height, 0));
 }

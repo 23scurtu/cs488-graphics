@@ -86,7 +86,7 @@ void Mesh::draw(ShaderProgram &shader, glm::mat4 parent)
 {
     // // Create a global transformation for the model (centre it).
     mat4 W;
-    W = glm::translate( W, this->translation ) * glm::toMat4(rotation);
+    W = glm::translate( W, this->translation ) * glm::toMat4(rotation) * glm::scale(mat4(1.0f), scale);
     W = parent*W;
     
     shader.enable();

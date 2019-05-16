@@ -68,6 +68,7 @@ class Mesh
 
     glm::vec3 translation;
     glm::vec3 color;
+    glm::vec3 scale = vec3(1,1,1);
 
 public:
     // TODO Move to private
@@ -78,6 +79,7 @@ public:
     void initBuffers(vector<float> vertices, vector<unsigned int> indices);
     void applyTranslation(glm::vec3 t);
     void setTranslation(glm::vec3 t){ translation = t; };
+    void setScale(glm::vec3 s){ scale = s; }
     void setColor(glm::vec3 color){ this->color = color; }
     glm::vec3 getTranslation(){ return translation; }
     glm::vec3 getColor(){ return color; }

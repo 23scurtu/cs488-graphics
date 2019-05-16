@@ -2,6 +2,8 @@
 #include "maze.hpp"
 #include "mesh.hpp"
 #include <vector>
+#include "graphics_object.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "cs488-framework/ShaderProgram.hpp"
 
@@ -9,12 +11,12 @@ using namespace std;
 
 class MazeMesh
 {
-    vector<Cube> walls;
+    size_t wall_height = 1;
+    Cube* wall_mesh;
+    vector<GraphicsObject> walls;
     glm::vec3 wall_color;
 
 public:
-    float maze_rotation = 0.0f;
-
     MazeMesh(Maze &maze);
     ~MazeMesh() = default;
 
@@ -23,4 +25,5 @@ public:
     glm::vec3 getWallColor();
 
     void draw(ShaderProgram &shader, mat4 parent=mat4(1.0f));
+    void changeWallHeight(int d_height);
 };

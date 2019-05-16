@@ -50,7 +50,7 @@ void A1::init()
 	// same random numbers
 	cout << "Random number seed = " << rseed << endl;
 
-	dig();
+	// dig();
 	
 	// Set the background colour.
 	glClearColor( 0.3, 0.5, 0.7, 1.0 );
@@ -143,29 +143,41 @@ void A1::appLogic()
 {
 	// avatar_pos = glm::vec2(avatar->getTranslation().x, avatar->getTranslation().z);
 
-	// Place per frame, application logic here ...
-	if(move_commands[0] && (!maze->getValue(avatar_pos.x - 1, avatar_pos.y) || wall_break)) avatar_pos.x -= 1;
-	else if(move_commands[1] && (!maze->getValue(avatar_pos.x, avatar_pos.y + 1)  || wall_break)) avatar_pos.y += 1;
-	else if(move_commands[2] && (!maze->getValue(avatar_pos.x + 1, avatar_pos.y)  || wall_break)) avatar_pos.x += 1;
-	else if(move_commands[3] && (!maze->getValue(avatar_pos.x, avatar_pos.y - 1)  || wall_break)) avatar_pos.y -= 1;
+	if(maze_generated)
+	{
+		// Place per frame, application logic here ...
+		if(move_commands[0] && (!maze->getValue(avatar_pos.x - 1, avatar_pos.y) || wall_break)) avatar_pos.x -= 1;
+		else if(move_commands[1] && (!maze->getValue(avatar_pos.x, avatar_pos.y + 1)  || wall_break)) avatar_pos.y += 1;
+		else if(move_commands[2] && (!maze->getValue(avatar_pos.x + 1, avatar_pos.y)  || wall_break)) avatar_pos.x += 1;
+		else if(move_commands[3] && (!maze->getValue(avatar_pos.x, avatar_pos.y - 1)  || wall_break)) avatar_pos.y -= 1;
 
-	avatar_pos = vec2(clamp(avatar_pos.x, -1.0f,float(DIM)), clamp(avatar_pos.y, -1.0f, float(DIM)));
+		avatar_pos = vec2(clamp(avatar_pos.x, -1.0f,float(DIM)), clamp(avatar_pos.y, -1.0f, float(DIM)));
 
-	if(wall_break){
-		maze->setValue(avatar_pos.x, avatar_pos.y, 0);
+		if(wall_break){
+			maze->setValue(avatar_pos.x, avatar_pos.y, 0);
 
-		// TODO Make better update function, store cubes in 2d vector internally.
-		maze_mesh->setMaze(*maze);
-	}
+			// TODO Make better update function, store cubes in 2d vector internally.
+			maze_mesh->setMaze(*maze);
+		}
 
-	// cout << "(" << avatar_pos.x << ", " << avatar_pos.y << ")" << endl;
-	// cout << maze->getValue(avatar_pos.x,avatar_pos.y);
+		// cout << "(" << avatar_pos.x << ", " << avatar_pos.y << ")" << endl;
+		// cout << maze->getValue(avatar_pos.x,avatar_pos.y);
 
-	// TODO Pull out avatar radius
-	avatar->rotation *= quat(vec3(0,PI/2,0));
+		// TODO Pull out avatar radius
+		avatar->rotation *= quat(vec3(0,PI/2,0));
+		avatar->setTranslation(glm::vec3(avatar_pos.x + 0.5f, 0.5f, avatar_pos.y + 0.5f)); 
 	avatar->setTranslation(glm::vec3(avatar_pos.x + 0.5f, 0.5f, avatar_pos.y + 0.5f)); 
-	
+		avatar->setTranslation(glm::vec3(avatar_pos.x + 0.5f, 0.5f, avatar_pos.y + 0.5f)); 
+	avatar->setTranslation(glm::vec3(avatar_pos.x + 0.5f, 0.5f, avatar_pos.y + 0.5f)); 
+		avatar->setTranslation(glm::vec3(avatar_pos.x + 0.5f, 0.5f, avatar_pos.y + 0.5f)); 
+		
+		// avatar->setTranslation(glm::vec3(-5, 0.0f,-5)); 
 	// avatar->setTranslation(glm::vec3(-5, 0.0f,-5)); 
+		// avatar->setTranslation(glm::vec3(-5, 0.0f,-5)); 
+	// avatar->setTranslation(glm::vec3(-5, 0.0f,-5)); 
+		// avatar->setTranslation(glm::vec3(-5, 0.0f,-5)); 
+
+	}
 
 
 	// avatar->setTranslation();
@@ -173,11 +185,13 @@ void A1::appLogic()
 	for(size_t i = 0; i < 4; i++) move_commands[i] = false;
 
 	if(dragging == 0 && last_dx){
-		maze_mesh->maze_rotation += 0.006*last_dx;
+		maze_rotation += 0.006*last_dx;
 		last_dx *= 0.85f;
 		cout << last_dx << endl;
 		if(last_dx < 0.0001f && last_dx > -0.0001f) last_dx = 0.0f;
 	}
+
+	
 }
 
 //----------------------------------------------------------------------------------------
@@ -206,6 +220,10 @@ void A1::guiLogic()
 			reset_maze();
 		}
 
+		if( ImGui::Button( "Dig" ) ) {
+			dig();
+		}
+
 		// Eventually you'll create multiple colour widgets with
 		// radio buttons.  If you use PushID/PopID to give them all
 		// unique IDs, then ImGui will be able to keep them separate.
@@ -218,48 +236,70 @@ void A1::guiLogic()
 		ImGui::PushID( 0 );
 		ImGui::ColorEdit3( "##Colour", colour );
 
+		bool color_changed = false;
+
 		ImGui::SameLine();
 		if( ImGui::RadioButton( "Maze Block Color", &current_col, 0 ) ) {
 			// Select this colour.
 			// current_col = 0;
-			auto maze_color = maze_mesh->getWallColor();
-			colour[0] = maze_color.r;
-			colour[1] = maze_color.g;
-			colour[2] = maze_color.b;
+
+			cout << "hiiiiiiiii" << endl;
+			if(maze_generated)
+			{
+				auto maze_color = maze_mesh->getWallColor();
+				colour[0] = maze_color.r;
+				colour[1] = maze_color.g;
+				colour[2] = maze_color.b;
+
+				color_changed = true;
+			}
 			
 		}
 		ImGui::SameLine();
 		if( ImGui::RadioButton( "Floor Color", &current_col, 1 ) ) {
-			// Select this colour.
-			auto floor_color = floor->getColor();
-			colour[0] = floor_color.r;
-			colour[1] = floor_color.g;
-			colour[2] = floor_color.b;
+			if(maze_generated)
+			{
+				// Select this colour.
+				auto floor_color = floor->getColor();
+				colour[0] = floor_color.r;
+				colour[1] = floor_color.g;
+				colour[2] = floor_color.b;
+
+				color_changed = true;
+			}
 
 		}
 		ImGui::SameLine();
 		if( ImGui::RadioButton( "Avatar Color", &current_col, 2 ) ) {
-			// Select this colour.
-			// current_col = 2;
-			auto avatar_color = avatar->getColor();
-			colour[0] = avatar_color.r;
-			colour[1] = avatar_color.g;
-			colour[2] = avatar_color.b;
+			if(maze_generated)
+			{
+				// Select this colour.
+				// current_col = 2;
+				auto avatar_color = avatar->getColor();
+				colour[0] = avatar_color.r;
+				colour[1] = avatar_color.g;
+				colour[2] = avatar_color.b;
+
+				color_changed = true;
+			}
 		}
 
 		ImGui::PopID();
 
-		switch(current_col)
+		if(maze_generated) // TODO Make this not happen isntantly at start
 		{
-			case 0: 
-				maze_mesh->setWallColor(glm::vec3(colour[0], colour[1], colour[2]));
-				break;
-			case 1:
-				floor->setColor(glm::vec3(colour[0], colour[1], colour[2]));
-				break;
-			case 2:
-				avatar->setColor(glm::vec3(colour[0], colour[1], colour[2]));
-				break;
+			switch(current_col)
+			{
+				case 0: 
+					maze_mesh->setWallColor(glm::vec3(colour[0], colour[1], colour[2]));
+					break;
+				case 1:
+					floor->setColor(glm::vec3(colour[0], colour[1], colour[2]));
+					break;
+				case 2:
+					avatar->setColor(glm::vec3(colour[0], colour[1], colour[2]));
+					break;
+			}
 		}
 
 /*
@@ -291,21 +331,24 @@ void A1::draw()
 	// Create a global transformation for the model (centre it).
 	mat4 W, W_trans;
 	// W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
-	W = glm::rotate(maze_mesh->maze_rotation, glm::vec3(0.0f, 1.0f, 0.0f)) * 
+	W = glm::rotate(maze_rotation, glm::vec3(0.0f, 1.0f, 0.0f)) * 
 		// glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) ) *
 		glm::scale(mat4(1.0f), vec3(scale, scale, scale));;
 
 	W_trans = 
-			  glm::rotate(maze_mesh->maze_rotation, glm::vec3(0.0f, 1.0f, 0.0f)) * 
+			  glm::rotate(maze_rotation, glm::vec3(0.0f, 1.0f, 0.0f)) * 
 			  glm::scale(mat4(1.0f), vec3(scale, scale, scale)) *
 			  glm::translate( W_trans, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );;
 			  // TODO Doing translate first is hacky but needed since dont have seperate model transform, find better way
 
-	maze_mesh->draw(m_shader, W);
-	floor->rotation = glm::quat(glm::vec3(PI/2.0f, 0.0f, 0.0f));
-	floor->draw(m_shader, W);
+	if(maze_generated)
+	{
+		maze_mesh->draw(m_shader, W);
+		floor->rotation = glm::quat(glm::vec3(PI/2.0f, 0.0f, 0.0f));
+		floor->draw(m_shader, W);
 
-	avatar->draw(m_shader, W_trans);
+		avatar->draw(m_shader, W_trans);
+	}
 
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
@@ -376,7 +419,7 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 				// cout << last_mouse_pos.x << endl;
 				float d_x = xPos - last_mouse_pos.x;
 				//Factor out maze rotation rate
-				maze_mesh->maze_rotation += 0.006*d_x;
+				maze_rotation += 0.006*d_x;
 				last_mouse_pos = glm::vec2(xPos, yPos);
 				last_dx = d_x;
 				
@@ -455,6 +498,13 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 		if(key == GLFW_KEY_Q) glfwSetWindowShouldClose(m_window, GL_TRUE);
 		if(key == GLFW_KEY_R) reset_maze();
 		if(key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT)  wall_break = true;
+		if(key == GLFW_KEY_D) dig();
+
+		if(maze_mesh)
+		{
+			if(key == GLFW_KEY_BACKSPACE) maze_mesh->changeWallHeight(-1);
+			if(key == GLFW_KEY_SPACE) maze_mesh->changeWallHeight(1);
+		}
 	}
 	if (action == GLFW_RELEASE)
 	{
@@ -484,15 +534,24 @@ void A1::dig()
 
 	original_maze = new Maze(*maze);
 
-	maze_mesh = new MazeMesh(*maze);
-	maze_mesh->setWallColor(glm::vec3(0,0,1));
+	if(!maze_mesh) maze_mesh = new MazeMesh(*maze);
+	else{ maze_mesh->setMaze(*maze); }
 
 	avatar = new Sphere(0.5f, 16, 16);
+	// avatar->setTranslation(vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ));
 	avatar->applyTranslation(glm::vec3(0.5f, 0, 0.5f));
-	avatar->setTranslation(vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ));
 
-	floor = new Square(16);
 	// floor->rotation *= glm::quat(glm::vec3(PI/2, PI, 0));
-	floor->setColor(glm::vec3(1,1,1));
 	// floor->applyTranslation(glm::vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+
+	if( ! maze_generated )
+	{
+		floor = new Square(16);
+		// Set default colors if maze has not ben generated yet.
+		maze_mesh->setWallColor(glm::vec3(0,0,1));
+		//230, 132
+		floor->setColor(glm::vec3(1,1,1));
+	}
+
+	maze_generated = true;
 }
