@@ -5,19 +5,22 @@ Completed on lab computer gl23.student.cs
 
 ##Manual
 
-// No details or assumptions have been made that were not included in the specification.
-When the specification states "The floor should only cover on the NxN portion of the grid", this was 
+When the specification states "The floor should only cover on the NxN portion of the grid", "cover" was 
 assumed to mean that the floor takes up the same footprint as the NxN protion of the grid, but still
-allows the grid itself to be visible
+allows the grid itself to be visible on the floor.
 
 When the specification referes to the position (0,0) regarding the position of the avatar, this is 
-assumed to be the top left corner of the grid (in the rotation it defaults to)
+assumed to be the top left corner of the grid (in the view it defaults to).
 
 When the specification states "It should not be possible to shrink a bar below the ground plane." 
-this is assumed to mean you cannot shrink the height of the cubes lower than 1.  i.e. they cannot
-be flat squares.
+this is assumed to mean you cannot shrink the height of the cubes to be exactly 0, thereby making 
+the minimum height 1 (when the height is set to exactly 0, visible z-fighting occurs between the walls 
+and floor making the walls appear partially "below" the ground plane).
 
-No limit has been placed on bar height
+No limit has been placed on bar height.
 
+It is assumed that the reset button does not change/reset any colors.
+
+It is assumed that when the reset button or R is pressed, the height of the maze is reset to 1.
 
 All objectives have been completed.
