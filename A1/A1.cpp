@@ -82,6 +82,14 @@ void A1::init()
 		glm::radians( 30.0f ),
 		float( m_framebufferWidth ) / float( m_framebufferHeight ),
 		1.0f, 1000.0f );
+
+	avatar = new Sphere(avatar_size/2, 16, 16);
+	avatar->setTranslation(vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+	avatar->setColor(avatar_color);
+
+	colour[0] = maze_color.r;
+	colour[1] = maze_color.g;
+	colour[2] = maze_color.b;
 }
 
 void A1::initGrid()
@@ -158,15 +166,27 @@ void A1::appLogic()
 			maze_mesh->setMaze(*maze);
 		}
 	}
+	else if(avatar)
+	{
+		if(move_commands[0] && avatar_pos.x >= 0) avatar_pos.x -= 1;
+		else if(move_commands[1] && avatar_pos.y < DIM) avatar_pos.y += 1;
+		else if(move_commands[2] && avatar_pos.x < DIM) avatar_pos.x += 1;
+		else if(move_commands[3] && avatar_pos.y >= 0) avatar_pos.y -= 1;
+
+		avatar_pos = vec2(clamp(avatar_pos.x, -1.0f,float(DIM)), clamp(avatar_pos.y, -1.0f, float(DIM)));
+	}
+	
 
 	for(size_t i = 0; i < 4; i++) move_commands[i] = false;
 
 	// Maze rotation persistence
 	if(dragging == 0 && last_dx){
 		maze_rotation += 0.006*last_dx;
-		last_dx *= 0.85f;
+		last_dx *= 0.80f;
 		if(last_dx < 0.0001f && last_dx > -0.0001f) last_dx = 0.0f;
 	}
+	if(!mouse_moving && dragging == 1) last_dx = 0.0f;
+	mouse_moving = false;
 }
 
 //----------------------------------------------------------------------------------------
@@ -192,7 +212,7 @@ void A1::guiLogic()
 		}
 
 		if( ImGui::Button( "Reset" ) ) {
-			reset_maze();
+			if(maze_generated) reset_maze();
 		}
 
 		if( ImGui::Button( "Dig" ) ) {
@@ -210,12 +230,12 @@ void A1::guiLogic()
 
 		ImGui::PushID( 0 );
 
-		if(!maze_generated)
-		{
-			colour[0] = maze_color.r;
-			colour[1] = maze_color.g;
-			colour[2] = maze_color.b;
-		}
+		// if(!maze_generated)
+		// {
+		// 	colour[0] = maze_color.r;
+		// 	colour[1] = maze_color.g;
+		// 	colour[2] = maze_color.b;
+		// }
 
 		ImGui::ColorEdit3( "##Colour", colour );
 
@@ -258,7 +278,7 @@ void A1::guiLogic()
 				break;
 			case 2:
 				avatar_color = change;
-				if(maze_generated) avatar->setColor(glm::vec3(colour[0], colour[1], colour[2]));
+				if(avatar) avatar->setColor(glm::vec3(colour[0], colour[1], colour[2]));
 				break;
 		}
 		
@@ -300,8 +320,10 @@ void A1::draw()
 		floor->draw(m_shader, W);
 		// TODO Pull out grid size
 		// Apply translation to place avatar in maze first.
-		avatar->draw(m_shader, W * glm::translate(mat4(1.0f), glm::vec3(avatar_pos.x + avatar_size/2, avatar_size/2, avatar_pos.y + avatar_size/2)) );
 	}
+	if(avatar)
+		avatar->draw(m_shader, W * glm::translate(mat4(1.0f), glm::vec3(avatar_pos.x + avatar_size/2, avatar_size/2, avatar_pos.y + avatar_size/2)) );
+	
 
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
@@ -382,6 +404,8 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 		}
 	}
 
+	mouse_moving = true;
+
 	return eventHandled;
 }
 
@@ -414,7 +438,7 @@ bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
 	bool eventHandled(false);
 
 	// Zoom in or out.
-	scale *= 1.0f - yOffSet * 0.05f;
+	scale *= 1.0f + yOffSet * 0.05f;
 	scale = clamp(scale, 0.2f, 1.6f);
 
 	return eventHandled;
@@ -467,12 +491,18 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 void A1::reset_maze()
 {
-	delete maze;
-	maze = new Maze(*original_maze);
-	maze_mesh->setMaze(*maze);
-	maze = new Maze(*original_maze);
+	if(maze) delete maze;
+	maze = nullptr;
+	// maze = new Maze(*original_maze);
+	// maze_mesh->setMaze(*maze);
+	// maze = new Maze(*original_maze);
+	if(maze_mesh) delete maze_mesh;
+	maze_mesh = nullptr;
+	maze_generated = false;
 
 	avatar_pos = vec2(-1,-1);
+	scale = 1.0f;
+	maze_rotation = 0.0f;
 }
 
 void A1::dig()
@@ -502,5 +532,6 @@ void A1::dig()
 		avatar->setColor(avatar_color);
 	}
 
+	avatar_pos = maze->getStartPos();
 	maze_generated = true;
 }

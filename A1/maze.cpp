@@ -28,6 +28,11 @@ size_t Maze::getDim() const
 	return m_dim;
 }
 
+glm::vec2 Maze::getStartPos()
+{
+	return start;
+}
+
 int Maze::getValue( int x, int y ) const
 {
 	if(x < 0 || y < 0 || x >= m_dim || y >= m_dim) return 0;
@@ -135,6 +140,7 @@ void Maze::digMaze()
 
 	// pick random start location
 	int s=random()%(m_dim-2)+1;
+	start = glm::vec2(0,s);
 	setValue(0,s,0);
 	setValue(1,s,0);
 	recDigMaze(1,s);

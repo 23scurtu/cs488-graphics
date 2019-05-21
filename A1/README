@@ -1,0 +1,23 @@
+##Compilation
+
+No changes from the default premake4/make combination and assumptions.
+Completed on lab computer gl23.student.cs
+
+##Manual
+
+// No details or assumptions have been made that were not included in the specification.
+When the specification states "The floor should only cover on the NxN portion of the grid", this was 
+assumed to mean that the floor takes up the same footprint as the NxN protion of the grid, but still
+allows the grid itself to be visible
+
+When the specification referes to the position (0,0) regarding the position of the avatar, this is 
+assumed to be the top left corner of the grid (in the rotation it defaults to)
+
+When the specification states "It should not be possible to shrink a bar below the ground plane." 
+this is assumed to mean you cannot shrink the height of the cubes lower than 1.  i.e. they cannot
+be flat squares.
+
+No limit has been placed on bar height
+
+
+All objectives have been completed.

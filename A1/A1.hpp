@@ -65,6 +65,7 @@ private:
 	int dragging = 0;
 	glm::vec2 last_mouse_pos;
 	float last_dx = 0.0f;
+	bool mouse_moving = false;
 
 	glm::vec2 avatar_pos = glm::vec2(-1,-1);
 	bool move_commands[4]{false, false, false, false};

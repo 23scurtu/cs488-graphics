@@ -3,6 +3,7 @@
 #pragma once
 #include <stddef.h>
 #include <memory.h>
+#include <glm/glm.hpp>
 
 class Maze
 {
@@ -19,6 +20,7 @@ public:
 	size_t getDim() const;
 
 	int getValue( int x, int y ) const;
+	glm::vec2 getStartPos();
 
 	void setValue( int x, int y, int h );
 
@@ -27,6 +29,7 @@ public:
 private:
 	size_t m_dim;
 	int *m_values;
+	glm::vec2 start;
 	void recDigMaze(int r, int c);
 	int numNeighbors(int r, int c);
 };
