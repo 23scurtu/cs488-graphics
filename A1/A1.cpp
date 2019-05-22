@@ -182,8 +182,8 @@ void A1::appLogic()
 	// Maze rotation persistence
 	if(dragging == 0 && last_dx){
 		maze_rotation += 0.006*last_dx;
-		last_dx *= 0.80f;
-		if(last_dx < 0.0001f && last_dx > -0.0001f) last_dx = 0.0f;
+		// last_dx *= 0.80f;
+		// if(last_dx < 0.0001f && last_dx > -0.0001f) last_dx = 0.0f;
 	}
 	if(!mouse_moving && dragging == 1) last_dx = 0.0f;
 	mouse_moving = false;
@@ -422,7 +422,7 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
 
 		if (button == GLFW_MOUSE_BUTTON_LEFT){
 			// Respond to some key events.
-			if(actions == GLFW_PRESS){ dragging = 2; }
+			if(actions == GLFW_PRESS){ dragging = 2; last_dx = 0.0f; }
 			else if(actions == GLFW_RELEASE){ dragging = 0; }
 		}
 	}
@@ -503,6 +503,7 @@ void A1::reset_maze()
 	avatar_pos = vec2(-1,-1);
 	scale = 1.0f;
 	maze_rotation = 0.0f;
+	last_dx = 0.0f;
 }
 
 void A1::dig()
