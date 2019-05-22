@@ -23,4 +23,7 @@ It is assumed that the reset button does not change/reset any colors.
 
 It is assumed that when the reset button or R is pressed, the height of the maze is reset to 1.
 
+When the specification states that the rotation "should persist independently of mouse movement, until 
+the next button press.", "next button press" is assumed to mean the next LEFT MOUSE BUTTON press.
+
 All objectives have been completed.
