@@ -15,8 +15,6 @@ using namespace std;
 #include <utility>
 using namespace glm;
 
-float cotan(float i) { return(1 / tan(i)); }
-
 //----------------------------------------------------------------------------------------
 // Constructor
 VertexData::VertexData()
@@ -857,7 +855,7 @@ bool A2::mouseButtonInputEvent (
 			// Respond to some key events.
 			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.x = true; current_options->x = true;}
 			else if(actions == GLFW_RELEASE){ pressed_buttons.x = false; 
-											 cout << pressed_buttons.x << ", " << pressed_buttons.y << ", " << pressed_buttons.z << endl;
+											  //  cout << pressed_buttons.x << ", " << pressed_buttons.y << ", " << pressed_buttons.z << endl;
 											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z) mouse_dragging = 0; 
 											  mouse_dx = 0.0f; 
 											  current_options->x = false;}
@@ -879,7 +877,7 @@ bool A2::mouseButtonInputEvent (
 											  current_options->z = false;}
 		}
 
-		cout << mouse_dragging << endl;
+		// cout << mouse_dragging << endl;
 	}
 
 	return eventHandled;
@@ -973,6 +971,8 @@ glm::mat4 A2::createRotation(glm::vec3 r)
 									-sin(r.y), 0, cos(r.y), 0,
 									0, 0, 0, 1});
 }
+
+float cotan(float i) { return(1 / tan(i)); }
 
 glm::mat4 A2::createPerspective(float n, float f, float fov, float aspect)
 {
