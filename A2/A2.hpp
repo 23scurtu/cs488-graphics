@@ -62,6 +62,17 @@ protected:
 			const glm::vec2 & v1
 	);
 
+	void drawLine (
+			const glm::vec4 & p0,
+			const glm::vec4 & p1
+	);
+
+	std::vector<glm::vec4> clipLinePrimitive3d(glm::vec4 a, glm::vec4 b);
+	std::vector<glm::vec4> clipLinePrimitives3d(std::vector<glm::vec4> data);
+	void clipLinePrimitives3d(std::vector<glm::vec4> &data, std::vector<glm::vec3> &colors);
+
+	void reset();
+
 	ShaderProgram m_shader;
 
 	GLuint m_vao;            // Vertex Array Object
@@ -72,4 +83,52 @@ protected:
 
 	glm::vec3 m_currentLineColour;
 
+	std::vector<glm::vec3> cube;
+
+	glm::vec3 cube_scale;
+	glm::vec3 cube_rot;
+	glm::vec3 cube_trans;
+	glm::mat4 model_no_scale;
+
+	float perspective_fov;
+	float perspective_near;
+	float perspective_far;
+
+	glm::vec3 view_rot;
+	glm::vec3 view_trans;
+	glm::mat4 view;
+
+	glm::vec2 viewport_tl;
+	glm::vec2 viewport_br;
+
+	glm::mat4 createScale(glm::vec3 s);
+	glm::mat4 createTransform(glm::vec3 t);
+	glm::mat4 createRotation(glm::vec3 r);
+	glm::mat4 createPerspective(float n, float f, float fov, float aspect);
+
+	struct bvec
+	{
+		bool x = false;
+		bool y = false;
+		bool z = false;
+	};
+
+	bvec pressed_buttons;
+	float mouse_dx = 0.0f;
+	int mouse_dragging = 0;
+	bvec *current_options;
+	glm::vec2 last_mouse_pos;
+	glm::vec2 last_mouse_click_pos;
+
+	bvec rotate_view;
+	bvec translate_view;
+	bvec perspective_change;
+
+	bvec scale_model;
+	bvec rotate_model;
+	bvec translate_model;
+
+	bool viewport_draw = false;
+
+	int current_mode;
 };
