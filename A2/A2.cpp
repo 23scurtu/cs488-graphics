@@ -31,21 +31,6 @@ VertexData::VertexData()
 A2::A2()
 	: m_currentLineColour(vec3(0.0f))
 {
-	// cube = vector<vec3>{vec3(1,1,1), vec3(-1,1,1),	
-	// 					vec3(-1,1,1), vec3(-1,-1,1),
-	// 					vec3(-1,-1,1), vec3(1,-1,1),
-	// 					vec3(1,-1,1), vec3(1,1,1),
-
-	// 					vec3(1,1,-1), vec3(-1,1,-1),	
-	// 					vec3(-1,1,-1), vec3(-1,-1,-1),
-	// 					vec3(-1,-1,-1), vec3(1,-1,-1),
-	// 					vec3(1,-1,-1), vec3(1,1,-1),
-
-	// 					vec3(1,1,1), vec3(1,1,-1),
-	// 					vec3(-1,1,1), vec3(-1,1,-1),
-	// 					vec3(-1,-1,1), vec3(-1,-1,-1),
-	// 					vec3(1,-1,1), vec3(1,-1,-1)};
-	
 	reset();
 }
 
@@ -245,13 +230,8 @@ void A2::appLogic()
 				break;
 		case 6: if(mouse_dragging)
 				{
-					// viewport_tl = vec2(std::min(last_mouse_click_pos.x, last_mouse_pos.x), std::max(last_mouse_click_pos.y, last_mouse_pos.y));
-					// viewport_br = vec2(std::max(last_mouse_click_pos.x, last_mouse_pos.x), std::min(last_mouse_click_pos.y, last_mouse_pos.y));
-
 					vec2 corner1 = last_mouse_click_pos;
 					vec2 corner2 = last_mouse_pos;
-
-
 
 					corner1.x = corner1.x/ m_windowWidth * 2.0f - 1.0f;
 					corner1.y = -(corner1.y/ m_windowHeight * 2.0f - 1.0f);
@@ -263,14 +243,8 @@ void A2::appLogic()
 
 					viewport_tl = clamp(viewport_tl, vec2(-1,-1), vec2(1,1));
 					viewport_br = clamp(viewport_br, vec2(-1,-1), vec2(1,1));
-
-					// cout << viewport_br.x << ", " <<  viewport_br.y << endl;
-					// cout << viewport_tl.x << ", " <<  viewport_tl.y << endl;
 				}
-		// cout << mouse_dragging << endl;
 	}
-
-	// cout << cube_rot.x << endl;
 
 	// Graphics Logic
 
@@ -287,7 +261,6 @@ void A2::appLogic()
 	cube_trans = vec3(0,0,0);
 
 	// TODO Make more efficient by only multiplying when needed.
-
 	model_no_scale = model_no_scale*model_trans*model_rot;
 	glm::mat4 model = model_no_scale*model_scale;
 
@@ -299,7 +272,6 @@ void A2::appLogic()
 
 	view = view_matrix_trans*view_matrix_rot * view;
 
-
 	for(vec4 &p : data) p = model*p;
 	
 	glm::mat4 perspective = createPerspective(perspective_near, perspective_far, perspective_fov, 1.0f);
@@ -310,9 +282,6 @@ void A2::appLogic()
 
 	// Clipping line primitives
 	data = clipLinePrimitives3d(data);
-
-
-	// for(vec4 &p : data) p = vec4(p.x/p.w, p.y/p.w, p.z/p.w, 1);
 
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
 	assert(data.size() % 2 == 0);
@@ -329,10 +298,6 @@ void A2::appLogic()
 
 	for(vec4 &p : world_gnomon_data) p = pv*p;
 	for(vec4 &p : model_gnomon_data) p = pv*model_no_scale*p;
-
-	
-	// for(vec4 &p : world_gnomon_data) p = vec4(p.x/p.w, p.y/p.w, p.z/p.w, 1);
-	// for(vec4 &p : model_gnomon_data) p = vec4(p.x/p.w, p.y/p.w, p.z/p.w, 1);
 
 	vector<vec3> world_gnomon_colors = {vec3(1.0f, 0.0f, 1.0f),
 										vec3(1.0f, 1.0f, 0.0f),
@@ -355,27 +320,6 @@ void A2::appLogic()
 		drawLine(model_gnomon_data[i], model_gnomon_data[i+1]);
 	}
 
-	
-
-	// // World Gnomon
-	// setLineColour(vec3(1.0f, 0.0f, 1.0f));
-	// drawLine(world_gnomon_data[0], world_gnomon_data[1]);
-	// setLineColour(vec3(1.0f, 1.0f, 0.0f));
-	// drawLine(world_gnomon_data[2], world_gnomon_data[3]);
-	// setLineColour(vec3(0.0f, 1.0f, 1.0f));
-	// drawLine(world_gnomon_data[4], world_gnomon_data[5]);
-
-	// // World Gnomon
-	// setLineColour(vec3(1.0f, 0.0f, 0.0f));
-	// drawLine(model_gnomon_data[0], model_gnomon_data[1]);
-	// setLineColour(vec3(0.0f, 1.0f, 0.0f));
-	// drawLine(model_gnomon_data[2], model_gnomon_data[3]);
-	// setLineColour(vec3(0.0f, 0.0f, 1.0f));
-	// drawLine(model_gnomon_data[4], model_gnomon_data[5]);
-
-	
-
-
 	// Draw Viewport
 	vec2 viewport_bl = vec2(viewport_tl.x, viewport_br.y);
 	vec2 viewport_tr = vec2(viewport_br.x, viewport_tl.y);
@@ -385,7 +329,6 @@ void A2::appLogic()
 	drawLine(viewport_br, viewport_tr);
 	drawLine(viewport_tr, viewport_tl);
 	drawLine(viewport_tl, viewport_bl);
-
 
 	mouse_dx = 0.0f;
 }
@@ -418,7 +361,6 @@ std::vector<glm::vec4> A2::clipLinePrimitives3d(vector<vec4> data)
 	{
 		auto result = clipLinePrimitive3d(data[i], data[i+1]);
 
-
 		new_data.insert(new_data.end(), result.begin(), result.end());
 	}
 	return new_data;
@@ -433,20 +375,6 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 	int a_outcodes = 0;
 	int b_outcodes = 0;
 
-	// // if(a.w + a.x < 0) a_outcodes |= 1;
-	// // if(a.w - a.x < 0) a_outcodes |= 2;
-	// // if(a.w + a.y < 0) a_outcodes |= 4;
-	// // if(a.w - a.y < 0) a_outcodes |= 8;
-	// if(a.w + a.z < 0) a_outcodes |= 16;
-	// if(a.w - a.z < 0) a_outcodes |= 32;
-
-	// // if(b.w + b.x < 0) b_outcodes |= 1;
-	// // if(b.w - b.x < 0) b_outcodes |= 2;
-	// // if(b.w + b.y < 0) b_outcodes |= 4;
-	// // if(b.w - b.y < 0) b_outcodes |= 8;
-	// if(b.w + b.z < 0) b_outcodes |= 16;
-	// if(b.w - b.z < 0) b_outcodes |= 32;
-
 	if(a.w + a.z < 0) a_outcodes |= 16;
 	if(a.w - a.z < 0) a_outcodes |= 32;
 
@@ -454,32 +382,23 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 	if(b.w - b.z < 0) b_outcodes |= 32;
 
 	const int all_ones = 32+16;
-	// const int all_ones = 63;
-	// cout << "bbbbbb" << endl;
 
 	if((a_outcodes | b_outcodes)==0)
 	{ 
 		result.push_back(vec4(a.x/a.w, a.y/a.w, a.z/a.w, 1)); 
-		result.push_back(vec4(b.x/b.w, b.y/b.w, b.z/b.w, 1)); 
-
-		// cout <<"cccccccccccccc" << endl;
+		result.push_back(vec4(b.x/b.w, b.y/b.w, b.z/b.w, 1));
 
 		return result; 
-	}// Trivially accept
+	} // Trivially accept
 	if(a_outcodes & b_outcodes) return result; // Trivially reject
-	//TODO Make NOT all_ones
 
 	vec3 new_a = vec3(a.x/a.w, a.y/a.w, a.z/a.w);
 	vec3 new_b = vec3(b.x/b.w, b.y/b.w, b.z/b.w);
 	// Otherwise, not trivial case
 
-	// cout << a_outcodes << " " << b_outcodes << endl;
-	// cout << a.x << ", " << a.y << ", " << a.z/a.w << endl;
-
 	// Near 
 	if(a_outcodes & 16)
 	{
-
 		float t = (new_a - vec3(0, 0, -1)).z / (new_a - new_b).z;
 
 		new_a = new_a + t*(new_b - new_a); // lt
@@ -487,9 +406,6 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 		a_outcodes = 0;
 		if(a.w + a.z < 0) a_outcodes |= 16;
 		if(a.w - a.z < 0) a_outcodes |= 32;
-
-		// cout <<  a.z << endl;
-		// cout <<"a: " <<  new_a.x << ", " << new_a.y << ", " << new_a.z << endl;
 	}
 	else if(b_outcodes & 16)
 	{
@@ -500,9 +416,6 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 		b_outcodes = 0;
 		if(b.w + b.z < 0) b_outcodes |= 16;
 		if(b.w - b.z < 0) b_outcodes |= 32;
-
-		// cout << a.z << endl;
-		// cout <<"b: " <<  new_b.x << ", " << new_b.y << ", " << new_b.z << endl;
 	}
 
 	// Far
@@ -516,9 +429,6 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 		a_outcodes = 0;
 		if(a.w + a.z < 0) a_outcodes |= 16;
 		if(a.w - a.z < 0) a_outcodes |= 32;
-
-		// cout <<  a.z << endl;
-		// cout <<"a: " <<  new_a.x << ", " << new_a.y << ", " << new_a.z << endl;
 	}
 	else if(b_outcodes & 32)
 	{
@@ -529,9 +439,6 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 		b_outcodes = 0;
 		if(b.w + b.z < 0) b_outcodes |= 16;
 		if(b.w - b.z < 0) b_outcodes |= 32;
-
-		// cout << a.z << endl;
-		// cout <<"b: " <<  new_b.x << ", " << new_b.y << ", " << new_b.z << endl;
 	}
 
 	result.push_back(vec4(new_a.x, new_a.y, new_a.z, 1));
@@ -542,8 +449,6 @@ std::vector<glm::vec4> A2::clipLinePrimitive3d(glm::vec4 a, glm::vec4 b)
 
 void A2::drawLine( const glm::vec4 & p0, const glm::vec4 & p1)
 {
-	// vec2 v0 = vec2(p0.x/p0.z, p0.y/p0.z);
-	// vec2 v1 = vec2(p1.x/p1.z, p1.y/p1.z);
 	vec2 v0 = vec2(p0.x, p0.y);
 	vec2 v1 = vec2(p1.x, p1.y);
 
@@ -576,8 +481,6 @@ void A2::drawLine( const glm::vec4 & p0, const glm::vec4 & p1)
 			float t = (v0 - vec2(-1,0)).x / (v0 - v1).x;
 
 			v0 = v0 + t*(v1 - v0);
-
-			// cout << lt.x << ", " << lt.y << endl;
 
 			a_outcodes = 0;
 			if(v0.x < -1) a_outcodes |= 1; // left 
@@ -848,11 +751,6 @@ bool A2::mouseButtonInputEvent (
 	bool eventHandled(false);
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
-		// The user clicked in the window.  If it's the left
-		// mouse button, initiate a rotation.
-
-		bvec all_false;
-
 		if (button == GLFW_MOUSE_BUTTON_LEFT){
 			// Respond to some key events.
 			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.x = true; current_options->x = true;}
@@ -878,8 +776,6 @@ bool A2::mouseButtonInputEvent (
 											  mouse_dx = 0.0f; 
 											  current_options->z = false;}
 		}
-
-		// cout << mouse_dragging << endl;
 	}
 
 	eventHandled = true;
@@ -1025,7 +921,6 @@ void A2::reset()
 
 	viewport_tl = glm::vec2(-0.9,0.9);
 	viewport_br = glm::vec2(0.9,-0.9);
-
 
 	// mouse_dx = 0.0f;
 	// mouse_dragging = 0;
