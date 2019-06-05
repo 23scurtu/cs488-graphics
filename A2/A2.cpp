@@ -206,9 +206,9 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
-	const float rotation_rate = 0.006;
+	const float rotation_rate = 0.01;
 	const float translation_rate = 0.05;
-	const float scale_rate = 0.005;
+	const float scale_rate = 0.01;
 
 	const float near_rate = 0.01;
 	const float far_rate = 0.05;
@@ -828,6 +828,8 @@ bool A2::mouseMoveEvent (
 		}
 	}
 
+	eventHandled = true;
+
 	// TODO Ensure this is reset when not moving
 	// cout << mouse_dx << endl;
 
@@ -879,6 +881,8 @@ bool A2::mouseButtonInputEvent (
 
 		// cout << mouse_dragging << endl;
 	}
+
+	eventHandled = true;
 
 	return eventHandled;
 }
@@ -936,6 +940,8 @@ bool A2::keyInputEvent (
 		if(key == GLFW_KEY_A) reset();
 		if(key == GLFW_KEY_Q) glfwSetWindowShouldClose(m_window, GL_TRUE);
 	}
+
+	eventHandled = true;
 
 	return eventHandled;
 }
