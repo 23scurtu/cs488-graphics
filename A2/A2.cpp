@@ -228,7 +228,7 @@ void A2::appLogic()
 				if(scale_model.y) cube_scale.y += mouse_dx*scale_rate;
 				if(scale_model.z) cube_scale.z += mouse_dx*scale_rate;
 				break;
-		case 6: if(mouse_dragging)
+		case 6: if(mouse_dragging == 1)
 				{
 					vec2 corner1 = last_mouse_click_pos;
 					vec2 corner2 = last_mouse_pos;

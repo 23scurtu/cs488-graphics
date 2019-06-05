@@ -7,6 +7,10 @@ Completed on lab computer gl23.student.cs
 
 Added an extra status line indicating the field of view.
 
+When in viewport mode, I assumed that the viewport only begins changing shape and "dynamically updating" once the 
+mouse has begun dragging.  In other words, clicking on the spot without dragging will not make the viewport
+dissapear.
+
 No additional meaningful details or assumptions have been made that were not included in the specification.
 
 All objectives have been completed.
