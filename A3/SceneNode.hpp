@@ -36,7 +36,9 @@ public:
     void remove_child(SceneNode* child);
 
 	//-- Transformations:
-    void rotate(char axis, float angle);
+    virtual void rotate(char axis, float angle);
+    virtual void rotate(glm::vec3 axis, float angle);
+    virtual void rotateLocal(glm::vec3 axis, float angle);
     void scale(const glm::vec3& amount);
     void translate(const glm::vec3& amount);
 
@@ -50,6 +52,7 @@ public:
     glm::mat4 invtrans;
     
     std::list<SceneNode*> children;
+    SceneNode* parent = nullptr;
 
 	NodeType m_nodeType;
 	std::string m_name;

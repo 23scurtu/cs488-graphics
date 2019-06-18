@@ -3,6 +3,9 @@
 #pragma once
 
 #include "SceneNode.hpp"
+#include <glm/glm.hpp>
+
+struct NotImplementedError {};
 
 class JointNode : public SceneNode {
 public:
@@ -16,6 +19,14 @@ public:
 		double min, init, max;
 	};
 
+	float x_rot, y_rot;
+
+	void rotateLocalClamped(glm::vec3 axis, float angle);
+
+	// Rotates locally
+	void rotate(char axis, float angle) override;
+	void rotate(glm::vec3 axis, float angle) override;
+	void rotateLocal(glm::vec3 axis, float angle) override;
 
 	JointRange m_joint_x, m_joint_y;
 };

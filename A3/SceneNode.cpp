@@ -38,7 +38,10 @@ SceneNode::SceneNode(const SceneNode & other)
 	  invtrans(other.invtrans)
 {
 	for(SceneNode * child : other.children) {
-		this->children.push_front(new SceneNode(*child));
+		// TODO Check all parent pointers work
+		SceneNode* new_child = new SceneNode(*child);
+		new_child->parent = this;
+		this->children.push_front(new_child);
 	}
 }
 
@@ -51,6 +54,9 @@ SceneNode::~SceneNode() {
 
 //---------------------------------------------------------------------------------------
 void SceneNode::set_transform(const glm::mat4& m) {
+	cerr << "Not Implemented" << endl;
+	throw 1;
+
 	trans = m;
 	invtrans = m;
 }
@@ -67,11 +73,13 @@ const glm::mat4& SceneNode::get_inverse() const {
 
 //---------------------------------------------------------------------------------------
 void SceneNode::add_child(SceneNode* child) {
+	child->parent = this;
 	children.push_back(child);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::remove_child(SceneNode* child) {
+	child->parent = nullptr;
 	children.remove(child);
 }
 
@@ -93,17 +101,38 @@ void SceneNode::rotate(char axis, float angle) {
 			break;
 	}
 	mat4 rot_matrix = glm::rotate(degreesToRadians(angle), rot_axis);
+	mat4 invrot_matrix = glm::rotate(degreesToRadians(-angle), rot_axis);
+
 	trans = rot_matrix * trans;
+	invtrans = invtrans * invrot_matrix;
+}
+
+void SceneNode::rotate(vec3 axis, float angle) {
+	mat4 rot_matrix = glm::rotate(degreesToRadians(angle), axis);
+	mat4 invrot_matrix = glm::rotate(degreesToRadians(-angle), axis);
+
+	trans = rot_matrix * trans;
+	invtrans = invtrans * invrot_matrix;
+}
+
+void SceneNode::rotateLocal(vec3 axis, float angle) {
+	mat4 rot_matrix = glm::rotate(degreesToRadians(angle), axis);
+	mat4 invrot_matrix = glm::rotate(degreesToRadians(-angle), axis);
+
+	trans = trans * rot_matrix;
+	invtrans = invrot_matrix * invtrans ;
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::scale(const glm::vec3 & amount) {
 	trans = glm::scale(amount) * trans;
+	invtrans = invtrans * glm::scale(1.0f/amount);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::translate(const glm::vec3& amount) {
 	trans = glm::translate(amount) * trans;
+	invtrans = invtrans * glm::translate(-amount);
 }
 
 

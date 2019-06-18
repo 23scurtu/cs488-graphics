@@ -12,9 +12,23 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+#include <unordered_map>
+
+class GeometryNode;
+class JointNode;
+
 struct LightSource {
 	glm::vec3 position;
 	glm::vec3 rgbIntensity;
+};
+
+struct JointSelection
+{
+	GeometryNode* gnode = nullptr;
+	JointNode* jnode = nullptr;
+
+	JointSelection() = default;
+	JointSelection(GeometryNode *gnode, JointNode *jnode): gnode{gnode}, jnode{jnode} {}
 };
 
 
@@ -49,13 +63,43 @@ protected:
 
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
+	void updateShaderUniforms(const ShaderProgram & shader, 
+							  const GeometryNode & node, 
+							  const glm::mat4 & viewMatrix, 
+							  const glm::mat4 & modelMatrix);
 	void renderSceneGraph(const SceneNode &node);
+	void renderSceneNode(const SceneNode &node, glm::mat4 parent_transform);
 	void renderArcCircle();
+
+	SceneNode* getSceneNode(unsigned int id, SceneNode* root);
+	bool selected(const GeometryNode* gnode);
 
 	glm::mat4 m_perpsective;
 	glm::mat4 m_view;
 
 	LightSource m_light;
+
+	struct bvec
+	{
+		bool x = false;
+		bool y = false;
+		bool z = false;
+	};
+
+	bvec pressed_buttons;
+
+	int current_mode = 1;
+	bool do_picking = false;
+	std::unordered_map<unsigned int, JointSelection> selected_geometry_nodes;
+
+	int mouse_dragging = 0;
+	float mouse_dy = 0;
+	// glm::vec2 last_mouse_click_pos;
+	glm::vec2 mouse_pos;
+	glm::vec2 last_mouse_pos;
+
+	glm::vec2 trackball_pos;
+	float trackball_diam;
 
 	//-- GL resources for mesh geometry data:
 	GLuint m_vao_meshData;
