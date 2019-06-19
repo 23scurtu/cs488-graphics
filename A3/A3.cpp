@@ -363,8 +363,8 @@ void A3::appLogic()
 
 						
 
-						pvec(rot);
-						cout << glm::length(rot) << endl;
+						// pvec(rot);
+						// cout << glm::length(rot) << endl;
 
 						if(rot != vec3(0,0,0))
 						{
@@ -716,7 +716,7 @@ bool A3::mouseMoveEvent (
 		double xPos,
 		double yPos
 ) {
-	bool eventHandled(false);
+	bool eventHandled(true);
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		if(mouse_dragging){
@@ -761,7 +761,7 @@ bool A3::mouseButtonInputEvent (
 		int actions,
 		int mods
 ) {
-	bool eventHandled(false);
+	bool eventHandled(true);
 
 	// Fill in with event handling code...
 
@@ -817,7 +817,7 @@ bool A3::mouseButtonInputEvent (
 			}
 			else
 				selected_geometry_nodes.erase(what);
-			cout << "selected count: " << selected_geometry_nodes.size() << endl;
+			// cout << "selected count: " << selected_geometry_nodes.size() << endl;
 		}
 
 		// if( what < xforms.size() ) {
@@ -866,7 +866,7 @@ bool A3::mouseButtonInputEvent (
 
 	if( rotation_drag_start && current_mode == 1 )
 	{
-		cout << "Drag started" << endl;
+		// cout << "Drag started" << endl;
 		//Dragging started in jointmode
 		for (std::pair<unsigned int, JointSelection> selection : selected_geometry_nodes)
 		{
@@ -884,7 +884,7 @@ bool A3::mouseButtonInputEvent (
 
 	if( rotation_drag_stop && current_mode == 1 )
 	{
-		cout << "Drag stopped" << endl;
+		// cout << "Drag stopped" << endl;
 		//Set changes in joints as a new command.
 
 		CommandFrame new_frame;
@@ -909,7 +909,7 @@ bool A3::mouseButtonInputEvent (
 		
 	}
 
-	cout << "command_stack_size: " << command_stack.size() << endl;
+	// cout << "command_stack_size: " << command_stack.size() << endl;
 
 	return eventHandled;
 }
@@ -971,13 +971,39 @@ bool A3::keyInputEvent (
 		int action,
 		int mods
 ) {
-	bool eventHandled(false);
+	bool eventHandled(true);
 
 	if( action == GLFW_PRESS ) {
 		if( key == GLFW_KEY_M ) {
 			show_gui = !show_gui;
 			eventHandled = true;
 		}
+
+		if(key == GLFW_KEY_I) resetPosition();
+		if(key == GLFW_KEY_O) resetOrientation();
+		if(key == GLFW_KEY_S) resetJoints();
+		if(key == GLFW_KEY_A) { resetPosition(); resetOrientation(); resetJoints();}
+		if(key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+		}
+
+		// ImGui::Text( "Options");
+
+		if(key == GLFW_KEY_C) draw_trackball = !draw_trackball;
+		if(key == GLFW_KEY_Z) zbuffer = !zbuffer;
+		if(key == GLFW_KEY_B) backface_culling = !backface_culling;
+		if(key == GLFW_KEY_F) frontface_culling = !frontface_culling;
+
+		// ImGui::Text( "Edit");
+		if( key == GLFW_KEY_U ) undo();
+		if( key == GLFW_KEY_R ) redo();
+
+		if( key == GLFW_KEY_P ) current_mode = 0;
+		if( key == GLFW_KEY_J ) current_mode = 1;
+
+		// ImGui::Text( "Interaction Mode");
+		// if(ImGui::RadioButton( "Position/Orientation", &current_mode, 0 ));
+		// if(ImGui::RadioButton( "Joints", &current_mode, 1 ));
 	}
 	// Fill in with event handling code...
 
