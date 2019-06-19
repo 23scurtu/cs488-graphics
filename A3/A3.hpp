@@ -15,6 +15,8 @@
 #include <unordered_map>
 #include "JointNode.hpp"
 
+#include <chrono>
+
 class GeometryNode;
 
 struct LightSource {
@@ -195,10 +197,11 @@ protected:
 
 	SceneNode* getSceneNode(unsigned int id, SceneNode* root);
 	bool selected(const GeometryNode* gnode);
+	SceneNode* getHeadNode(SceneNode *root);
 
-	void undo();
-	void redo();
-	void add_action();
+	void undo(bool human_called = false);
+	void redo(bool human_called = false);
+	// void add_action();
 
 	void resetPosition();
 	void resetOrientation();
@@ -248,6 +251,13 @@ protected:
 	glm::mat4 root_invrotation;
 	glm::mat4 root_original;
 	glm::mat4 root_invoriginal;
+
+	JointNode *head_joint = nullptr;
+	GeometryNode *head_mesh = nullptr;
+
+	float warning_time = 0; //seconds
+	float warning_duration = 1; //seconds
+	std::chrono::system_clock::time_point last_time;
 
 	//-- GL resources for mesh geometry data:
 	GLuint m_vao_meshData;

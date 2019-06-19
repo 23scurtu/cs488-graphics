@@ -5,6 +5,48 @@ Completed on lab computer gl23.student.cs
 
 ##Manual
 
+If any joints are selected in Joint mode when switching to Position mode, we maintain the selection of the joints until
+they are deselected when back in Joint mode.  This holds for all resets as well, reseting the joints does not remove 
+their selection.
+When the specification states "The paradigm is that when you release a mouse button when in joint manipulation mode (see below),
+the current joint angles are stored on the undo/redo stack.", this is assumed to mean angles are stored on the stack once NO
+buttons are held down if multiple were held down.
+When the specification states "Beneath the menu bar there should be two radio buttons used to select the interaction mode for 
+the main application window.", as discussed on piazza this is assumed to mean that we have an additional sub-menu (in this case
+called "Interaction Mode") that contains the two radio buttons.  I otherwords, "below" is assumed to mean "in a sub-menu".
+When the specification states "Dragging with the right mouse button held down should initiate a "virtual trackball" that 
+controls the orientation of the puppet around its own origin", the origin is assumed to mean the origin of the root node.
+In lua, the node named "head" will have the special rotation properties of the head stated in the specification (more 
+specifically, the joint about the node marked "head" in the scene graph).
+
 No additional meaningful details or assumptions have been made that were not included in the specification.
+
+Changed JointNode so that it stores the x and y rotations to be able to clamp them using a new clampedRotation function.
+Added methods get and set TransformPack to JointNode to easily change the transform informaton stored inside. This
+was useful for keeping track of and changing a jointNodes transformation while keeping it in the scene graph.
+Changed SceneNode to have a rotateLocal function to rotate around its local coordinates instead of world coordinates.
+Copied trackball.c and trackball.h into this directory as trackball.hpp and trackball.cpp, made small tweaks to make them 
+return vectors and remove the unused function.
+
+Overview of the puppet's hierarchical model:
+
+The eyes and head meshes are all attached to the head joint.
+There is one joint and one mesh for each other body segment.
+No mesh has a child. All meshes are leaves and parented to a joint.
+Ive kept the naming convetions to XXXJoint and XXXMesh to make these pairings clearer.
+
+Assume from here on out that (except for the eyes and head) each joint has a mesh fitted to it, I will be explaining
+the relationship between the joints which contain the pertinent information about the hierchy.
+The torso or "body" is the only child of the root node.
+The "shoulders" and "hips" are children of the body joint.
+The upper left and right arms are children of the shoulders.
+Each lower arm is a child of their respective upper arm, and each hand is a child of their respective lower arm.
+The upper left and right legs are children of the hips.
+Each lower leg is a child of their respective upper leg, and each foot is a child of their respective lower leg.
+The neck is a child of the shoulders and is able to rotate "sideways".  The head joint is a child of the neck joint.
+
+All arm are leg segments are restricted to move in the "forward" and "back" directions.  In otherwords, they can move
+as if you were swinging your arms forward and back or kicking your legs forward and back. The hands and feet also rotate
+"forward" and "back".
 
 All objectives have been completed.

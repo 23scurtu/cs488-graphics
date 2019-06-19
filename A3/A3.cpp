@@ -69,6 +69,10 @@ void A3::init()
 	enableVertexShaderInputSlots();
 
 	processLuaSceneFile(m_luaSceneFile);
+	head_mesh = static_cast<GeometryNode*>( getHeadNode(m_rootNode.get()));
+	if(head_mesh) head_joint = static_cast<JointNode*>(head_mesh->parent);
+
+	// cout << head->m_nodeId << endl;
 
 	// Load and decode all .obj files at once here.  You may add additional .obj files to
 	// this list in order to support rendering additional mesh types.  All vertex
@@ -100,6 +104,8 @@ void A3::init()
 	// all vertex data resources.  This is fine since we already copied this data to
 	// VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
 	// this point.
+
+	last_time =  chrono::system_clock::now();
 }
 
 //----------------------------------------------------------------------------------------
@@ -272,8 +278,9 @@ void A3::initViewMatrix() {
 //----------------------------------------------------------------------------------------
 void A3::initLightSources() {
 	// World-space position
-	m_light.position = vec3(-3.0f, 5.0f, 0.0f);
-	m_light.rgbIntensity = vec3(1.0f); // light
+	m_light.position = vec3(-2.0f, 5.0f, 0.0f);
+	// m_light.position = vec3(0.0f, 0.0f, 0.0f);
+	m_light.rgbIntensity = vec3(0.9f); // light
 }
 
 //----------------------------------------------------------------------------------------
@@ -402,6 +409,19 @@ void A3::appLogic()
 							// std::cout << element.first << " :: " << element.second << std::endl;
 							selection.second.jnode->clampedRotate('x', -trans_rate*(mouse_pos - last_mouse_pos).y);
 						}
+						//TODO Add HEAD rotation!
+					}
+
+					if(pressed_buttons.z)
+					{
+						float trans_rate = 1;
+							// std::cout << element.first << " :: " << element.second << std::endl;
+
+						if(head_joint && head_mesh)
+						{
+							if(selected_geometry_nodes.find(head_mesh->m_nodeId) != selected_geometry_nodes.end())
+								head_joint->clampedRotate('y', -trans_rate*(mouse_pos - last_mouse_pos).y);
+						}
 					}
 				}
 				break;
@@ -412,7 +432,13 @@ void A3::appLogic()
 
 	uploadCommonSceneUniforms();
 
+	auto current_time = chrono::system_clock::now();
+
+	warning_time -= std::chrono::duration<double>(current_time -  last_time).count();
+	if(warning_time < 0) warning_time = 0;
+
 	last_mouse_pos = mouse_pos;
+	last_time = current_time;
 }
 
 void A3::resetPosition()
@@ -465,38 +491,129 @@ void A3::guiLogic()
 	ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
 	float opacity(0.5f);
 
-	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
-			windowFlags);
+	if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("Application")) {
+            if( ImGui::MenuItem( "Reset Position (I)" ) ) resetPosition();
+			if( ImGui::MenuItem( "Reset Orientation (O)" ) ) resetOrientation();
+			if( ImGui::MenuItem( "Reset Joints (S)" ) ) resetJoints();
+			if( ImGui::MenuItem( "Reset All (A)" ) ){ resetPosition(); resetOrientation(); resetJoints();}
+			if( ImGui::MenuItem( "Quit Application (Q)" ) ) {
+				glfwSetWindowShouldClose(m_window, GL_TRUE);
+			}
+
+            ImGui::EndMenu();
+        }
+
+		if (ImGui::BeginMenu("Options")) {
+				ImGui::Checkbox("Circle (C)", &draw_trackball);
+				ImGui::Checkbox("Z-buffer (Z)", &zbuffer);
+				ImGui::Checkbox("Backface culling (B)", &backface_culling);
+				ImGui::Checkbox("Frontface culling (F)", &frontface_culling);
+            ImGui::EndMenu();
+        }
+
+		if (ImGui::BeginMenu("Edit")) {
+				if( ImGui::Button( "Undo (U)" ) ) undo(true);
+				if( ImGui::Button( "Redo (R)" ) ) redo(true);
+            ImGui::EndMenu();
+        }
+
+		if (ImGui::BeginMenu("Interaction Mode")) {
+				if(ImGui::RadioButton( "Position/Orientation (P)", &current_mode, 0 ));
+				if(ImGui::RadioButton( "Joints (J)", &current_mode, 1 ));
+            ImGui::EndMenu();
+        }
+
+		// if(ImGui::RadioButton( "Position/Orientation (P)", &current_mode, 0 ));
+		// if(ImGui::RadioButton( "Joints (J)", &current_mode, 1 ));
+
+        ImGui::EndMainMenuBar();
+    }
+
+	// ImGui::SetCursorPos(ImVec2(200,100));
+	if(warning_time != 0.0f) 
+	{
+		// ImGui::SetCursorPos(ImVec2(200,100));
+		ImGui::Begin("Warning!", &showDebugWindow, ImVec2(100, 100), opacity, windowFlags);
+				ImGui::Text( "Cannot undo or redo past \n the end of the stack!");
+		ImGui::End();
+	}
+
+	// ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
+	// 		windowFlags);
 
 
-		// Add more gui elements here here ...
+	// 	// Add more gui elements here here ...
 
-		ImGui::Text( "Application");
-		if( ImGui::Button( "Reset Position" ) ) resetPosition();
-		if( ImGui::Button( "Reset Orientation" ) ) resetOrientation();
-		if( ImGui::Button( "Reset Joints" ) ) resetJoints();
-		if( ImGui::Button( "Reset All" ) ){ resetPosition(); resetOrientation(); resetJoints();}
-		if( ImGui::Button( "Quit Application" ) ) {
-			glfwSetWindowShouldClose(m_window, GL_TRUE);
-		}
+	// 	ImGui::Text( "Application");
+	// 	if( ImGui::Button( "Reset Position (I)" ) ) resetPosition();
+	// 	if( ImGui::Button( "Reset Orientation (O)" ) ) resetOrientation();
+	// 	if( ImGui::Button( "Reset Joints (S)" ) ) resetJoints();
+	// 	if( ImGui::Button( "Reset All (A)" ) ){ resetPosition(); resetOrientation(); resetJoints();}
+	// 	if( ImGui::Button( "Quit Application (Q)" ) ) {
+	// 		glfwSetWindowShouldClose(m_window, GL_TRUE);
+	// 	}
 
-		ImGui::Text( "Options");
-		ImGui::Checkbox("Circle", &draw_trackball);
-		ImGui::Checkbox("Z-buffer", &zbuffer);
-		ImGui::Checkbox("Backface culling", &backface_culling);
-		ImGui::Checkbox("Frontface culling", &frontface_culling);
+	// 	ImGui::Text( "Options");
+	// 	ImGui::Checkbox("Circle (C)", &draw_trackball);
+	// 	ImGui::Checkbox("Z-buffer (Z)", &zbuffer);
+	// 	ImGui::Checkbox("Backface culling (B)", &backface_culling);
+	// 	ImGui::Checkbox("Frontface culling (F)", &frontface_culling);
 
-		ImGui::Text( "Edit");
-		if( ImGui::Button( "Undo" ) ) undo();
-		if( ImGui::Button( "Redo" ) ) redo();
+	// 	ImGui::Text( "Edit");
+	// 	if( ImGui::Button( "Undo (U)" ) ) undo(true);
+	// 	if( ImGui::Button( "Redo (R)" ) ) redo(true);
 
-		ImGui::Text( "Interaction Mode");
-		if(ImGui::RadioButton( "Position/Orientation", &current_mode, 0 ));
-		if(ImGui::RadioButton( "Joints", &current_mode, 1 ));
+	// 	ImGui::Text( "Interaction Mode");
+	// 	if(ImGui::RadioButton( "Position/Orientation (P)", &current_mode, 0 ));
+	// 	if(ImGui::RadioButton( "Joints (J)", &current_mode, 1 ));
 
-		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
+	// 	ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 
-	ImGui::End();
+	// 	// if(warning_time != 0.0f) 
+	// 	// {
+	// 	// 	ImGui::Text( "" );
+	// 	// 	ImGui::Text( "Cannot undo or redo past \n the end of the stack!");
+	// 	// }
+
+	// ImGui::End();
+
+	///////////////////////////////////////////
+
+	// 	// Add more gui elements here here ...
+
+	// 	ImGui::Text( "Application");
+	// 	if( ImGui::Button( "Reset Position (I)" ) ) resetPosition();
+	// 	if( ImGui::Button( "Reset Orientation (O)" ) ) resetOrientation();
+	// 	if( ImGui::Button( "Reset Joints (S)" ) ) resetJoints();
+	// 	if( ImGui::Button( "Reset All (A)" ) ){ resetPosition(); resetOrientation(); resetJoints();}
+	// 	if( ImGui::Button( "Quit Application (Q)" ) ) {
+	// 		glfwSetWindowShouldClose(m_window, GL_TRUE);
+	// 	}
+
+	// 	ImGui::Text( "Options");
+	// 	ImGui::Checkbox("Circle (C)", &draw_trackball);
+	// 	ImGui::Checkbox("Z-buffer (Z)", &zbuffer);
+	// 	ImGui::Checkbox("Backface culling (B)", &backface_culling);
+	// 	ImGui::Checkbox("Frontface culling (F)", &frontface_culling);
+
+	// 	ImGui::Text( "Edit");
+	// 	if( ImGui::Button( "Undo (U)" ) ) undo(true);
+	// 	if( ImGui::Button( "Redo (R)" ) ) redo(true);
+
+	// 	ImGui::Text( "Interaction Mode");
+	// 	if(ImGui::RadioButton( "Position/Orientation (P)", &current_mode, 0 ));
+	// 	if(ImGui::RadioButton( "Joints (J)", &current_mode, 1 ));
+
+	// 	ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
+
+	// 	if(warning_time != 0.0f) 
+	// 	{
+	// 		ImGui::Text( "" );
+	// 		ImGui::Text( "Cannot undo or redo past \n the end of the stack!");
+	// 	}
+
+	// ImGui::End();
 }
 
 bool A3::selected(const GeometryNode* gnode)
@@ -752,6 +869,19 @@ SceneNode* A3::getSceneNode(unsigned int id, SceneNode* root)
 	return nullptr;
 }
 
+SceneNode* A3::getHeadNode(SceneNode *root)
+{
+	if(root->m_name == "head") return root;
+
+	for (SceneNode * node : root->children) {
+		SceneNode* result = getHeadNode(node);
+
+		if(result) return result;
+	}
+
+	return nullptr;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse button events.
@@ -914,16 +1044,21 @@ bool A3::mouseButtonInputEvent (
 	return eventHandled;
 }
 
-void A3::undo()
+void A3::undo(bool human_called)
 {
 	if(!command_stack.empty() && stack_ptr >= 0) 
 	{
 		command_stack[stack_ptr].undo();
 		stack_ptr -= 1;
 	}
+	else if(human_called)
+	{
+		warning_time = warning_duration;
+	}
+	
 }
 
-void A3::redo()
+void A3::redo(bool human_called)
 {
 	// cout << "stack_ptr " << stack_ptr << endl;
 	if(!command_stack.empty()  && stack_ptr < int(command_stack.size()) - 1) 
@@ -931,6 +1066,10 @@ void A3::redo()
 		// cout << "Redo" << endl;
 		stack_ptr += 1;
 		command_stack[stack_ptr].execute();
+	}
+	else if(human_called)
+	{
+		warning_time = warning_duration;
 	}
 }
 
@@ -995,8 +1134,8 @@ bool A3::keyInputEvent (
 		if(key == GLFW_KEY_F) frontface_culling = !frontface_culling;
 
 		// ImGui::Text( "Edit");
-		if( key == GLFW_KEY_U ) undo();
-		if( key == GLFW_KEY_R ) redo();
+		if( key == GLFW_KEY_U ) undo(true);
+		if( key == GLFW_KEY_R ) redo(true);
 
 		if( key == GLFW_KEY_P ) current_mode = 0;
 		if( key == GLFW_KEY_J ) current_mode = 1;

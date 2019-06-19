@@ -88,8 +88,10 @@ neckJoint:rotate('x', 90)
 -- neckJoint:rotate('z', 90)
 shoulderJoint:add_child(neckJoint)
 
-headJoint = gr.joint('head_joint', {-45, 0, 45}, {-90, 0, 0})
-headJoint:translate(0.5, 0, 0)
+headJoint = gr.joint('head_joint', {-16, 0, 45}, {-45, 0, 45})
+headJoint:translate(-0.25, 0, 0)
+headJoint:rotate('z',90)
+headJoint:rotate('y',90)
 neckJoint:add_child(headJoint)
 
 -- ARMS
@@ -121,29 +123,29 @@ rightHandJoint:translate(0, 1.25, 0)
 rightLowerArmJoint:add_child(rightHandJoint)
 
 -- LEGS
-leftUpperLegJoint = gr.joint('left_upper_arm_joint', {-45, 0, 90}, {0,0,0})
+leftUpperLegJoint = gr.joint('left_upper_leg_joint', {-45, 0, 90}, {0,0,0})
 leftUpperLegJoint:translate(0, 0.75, 0)
 leftUpperLegJoint:rotate('z', 90)
 hipsJoint:add_child(leftUpperLegJoint)
 
-leftLowerLegJoint = gr.joint('left_lower_arm_joint', {-135, 0, 0}, {0,0,0})
+leftLowerLegJoint = gr.joint('left_lower_leg_joint', {-135, 0, 0}, {0,0,0})
 leftLowerLegJoint:translate(0, 2.75, 0)
 leftUpperLegJoint:add_child(leftLowerLegJoint)
 
-leftFootJoint = gr.joint('left_hand_joint', {-90, 0, 45}, {0,0,0})
+leftFootJoint = gr.joint('left_foot_joint', {-90, 0, 45}, {0,0,0})
 leftFootJoint:translate(0, 1.6, 0.25)
 leftLowerLegJoint:add_child(leftFootJoint)
 
-rightUpperLegJoint = gr.joint('right_upper_arm_joint', {-45, 0, 90}, {0,0,0})
+rightUpperLegJoint = gr.joint('right_upper_leg_joint', {-45, 0, 90}, {0,0,0})
 rightUpperLegJoint:translate(0, -0.75, 0)
 rightUpperLegJoint:rotate('z', 90)
 hipsJoint:add_child(rightUpperLegJoint)
 
-rightLowerLegJoint = gr.joint('right_lower_arm_joint', {-135, 0, 0}, {0,0,0})
+rightLowerLegJoint = gr.joint('right_lower_leg_joint', {-135, 0, 0}, {0,0,0})
 rightLowerLegJoint:translate(0, 2.75, 0)
 rightUpperLegJoint:add_child(rightLowerLegJoint)
 
-rightFootJoint = gr.joint('right_hand_joint', {-90, 0, 45}, {0,0,0})
+rightFootJoint = gr.joint('right_foot_joint', {-90, 0, 45}, {0,0,0})
 rightFootJoint:translate(0, 1.6, 0.25)
 rightLowerLegJoint:add_child(rightFootJoint)
 
@@ -166,27 +168,27 @@ hipsJoint:add_child(hipsMesh)
 
 neckMesh = gr.mesh('sphere', 'neck')
 neckMesh:scale(1, 0.4, 0.4)
-neckMesh:translate(-0.25, 0, 0)
+neckMesh:translate(-0.5, 0, 0)
 neckMesh:set_material(gr.material({249/255,213/255,170/255}, {0.1, 0.1, 0.1}, 10.0))
 neckJoint:add_child(neckMesh)
 
 headMesh = gr.mesh('cube', 'head')
 headMesh:scale(1.2, 1.2, 1.2)
--- cubeMesh:translate(0.0, -0.5, -5.0)
+headMesh:translate(0, -0.75, 0)
 headMesh:set_material(gr.material({249/255,213/255,170/255}, {0.1, 0.1, 0.1}, 10.0))
 
 -- Add the cubeMesh GeometryNode to the child list of rootnode.
 headJoint:add_child(headMesh)
 
-leftEye = gr.mesh('sphere', 'head')
+leftEye = gr.mesh('sphere', 'left_eye')
 leftEye:scale(0.1, 0.1, 0.1)
-leftEye:translate(0.0, 0.6, 0.3)
+leftEye:translate(0.3, -0.75, 0.6)
 leftEye:set_material(gr.material({1, 1, 1}, {1, 1, 1}, 10.0))
 headJoint:add_child(leftEye)
 
-rightEye = gr.mesh('sphere', 'head')
+rightEye = gr.mesh('sphere', 'right_eye')
 rightEye:scale(0.1, 0.1, 0.1)
-rightEye:translate(0.0, 0.6, -0.3)
+rightEye:translate(-0.3, -0.75, 0.6)
 rightEye:set_material(gr.material({1, 1, 1}, {1, 1, 1}, 10.0))
 headJoint:add_child(rightEye)
 
@@ -255,7 +257,7 @@ leftFootMesh = gr.mesh('cube', 'left_foot')
 leftFootMesh:scale(0.75,1, 0.4)
 leftFootMesh:translate(0,0.5, 0)
 leftFootMesh:rotate('x', 90)
-leftFootMesh:set_material(gr.material({0.1, 0.1, 0.1}, {0.8, 0.8, 0.8}, 10.0))
+leftFootMesh:set_material(gr.material({0.1, 0.1, 0.1}, {0.8, 0.8, 0.8}, 100.0))
 leftFootJoint:add_child(leftFootMesh)
 
 rightUpperLegMesh = gr.mesh('cube', 'right_upper_leg')
@@ -276,7 +278,7 @@ rightFootMesh = gr.mesh('cube', 'right_foot')
 rightFootMesh:scale(0.75,1, 0.4)
 rightFootMesh:translate(0,0.5, 0)
 rightFootMesh:rotate('x', 90)
-rightFootMesh:set_material(gr.material({0.1, 0.1, 0.1}, {0.8, 0.8, 0.8}, 10.0))
+rightFootMesh:set_material(gr.material({0.1, 0.1, 0.1}, {0.8, 0.8, 0.8}, 50.0))
 rightFootJoint:add_child(rightFootMesh)
 
 
