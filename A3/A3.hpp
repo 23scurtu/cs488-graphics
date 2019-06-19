@@ -13,9 +13,9 @@
 #include <memory>
 
 #include <unordered_map>
+#include "JointNode.hpp"
 
 class GeometryNode;
-class JointNode;
 
 struct LightSource {
 	glm::vec3 position;
@@ -29,6 +29,128 @@ struct JointSelection
 
 	JointSelection() = default;
 	JointSelection(GeometryNode *gnode, JointNode *jnode): gnode{gnode}, jnode{jnode} {}
+};
+
+class Command
+{
+public:
+  virtual ~Command() {}
+  virtual void execute() = 0;
+  virtual void undo() = 0;
+};
+class RotateCommand: Command
+{
+	JointNode *node;
+  	char axis;
+	float angle;
+	glm::mat4 prev_trans;
+	glm::mat4 prev_invtrans;
+public:
+	RotateCommand(JointNode *node, char axis, float angle)
+		: node{node}, axis{axis}, angle{angle} {}
+
+	virtual void execute()
+	{
+		prev_trans = node->trans;
+		prev_invtrans = node->invtrans;
+
+		node->rotate(axis, angle);
+		// unit_->moveTo(x_, y_);
+	}
+
+	virtual void undo()
+	{
+		node->trans = prev_trans;
+		node->invtrans = prev_invtrans;
+	}
+};
+
+class JointChangeCommand: public Command
+{
+	JointNode *node;
+	JointTransform n_trans;
+	JointTransform p_trans;
+public:
+	JointChangeCommand(JointNode *node, JointTransform p_trans)
+		: node{node}, n_trans{node->getTransformPack()}, p_trans{p_trans} {}
+
+	virtual void execute()
+	{
+		node->setTransformPack(n_trans);//  new_node;
+	}
+
+	virtual void undo()
+	{
+		node->setTransformPack(p_trans);
+	}
+};
+
+// class JointChangeCommand: public Command
+// {
+// 	JointNode *node;
+// 	// JointNode new_node;
+// 	// JointNode prev_node;
+
+// 	glm::mat4 n_trans;
+// 	glm::mat4 n_invtrans;
+// 	float n_x_rot;
+// 	float n_y_rot;
+
+// 	glm::mat4 p_trans;
+// 	glm::mat4 p_invtrans;
+// 	float p_x_rot;
+// 	float p_y_rot;
+
+// public:
+// 	JointChangeCommand(JointNode *node, JointNode &prev_node)
+// 		: node{node}, 
+// 		n_trans{node->trans}, 
+// 		n_invtrans{node->invtrans}
+// 		n_
+
+// 	virtual void execute()
+// 	{
+// 		*node = new_node;//  new_node;
+// 	}
+
+// 	virtual void undo()
+// 	{
+// 		*node = prev_node;
+// 	}
+// };
+
+struct CommandFrame
+{
+	std::vector<Command*> commands;
+	
+	CommandFrame() = default;
+	~CommandFrame()
+	{
+		// for(auto command: commands) delete command;
+	}
+	//TODO Write copy constructor
+
+	// Commands will get executed in order theyre added 
+	void addCommand(Command* command)
+	{ 
+		commands.push_back(command); 
+	}
+
+	void execute()
+	{
+		for(auto command: commands) command->execute();
+	}
+
+	void undo()
+	{
+		for(auto command: commands) command->undo();
+	}
+
+	void deleteCommands()
+	{
+		for(auto command: commands) delete command;
+	}
+
 };
 
 
@@ -74,6 +196,14 @@ protected:
 	SceneNode* getSceneNode(unsigned int id, SceneNode* root);
 	bool selected(const GeometryNode* gnode);
 
+	void undo();
+	void redo();
+	void add_action();
+
+	void resetPosition();
+	void resetOrientation();
+	void resetJoints();
+
 	glm::mat4 m_perpsective;
 	glm::mat4 m_view;
 
@@ -88,7 +218,7 @@ protected:
 
 	bvec pressed_buttons;
 
-	int current_mode = 1;
+	int current_mode = 0;
 	bool do_picking = false;
 	std::unordered_map<unsigned int, JointSelection> selected_geometry_nodes;
 
@@ -100,6 +230,24 @@ protected:
 
 	glm::vec2 trackball_pos;
 	float trackball_diam;
+
+	std::vector<CommandFrame> command_stack;
+	int stack_ptr = -1;
+	// std::vector<JointNode> changed_joints;
+	// std::vector<JointNode*> changed_nodes;
+	std::unordered_map<JointNode*, JointTransform> changed_joints;
+
+	bool draw_trackball = false;
+	bool zbuffer = true;
+	bool backface_culling = false;
+	bool frontface_culling = false;
+
+	glm::mat4 root_translation;
+	glm::mat4 root_invtranslation;
+	glm::mat4 root_rotation;
+	glm::mat4 root_invrotation;
+	glm::mat4 root_original;
+	glm::mat4 root_invoriginal;
 
 	//-- GL resources for mesh geometry data:
 	GLuint m_vao_meshData;

@@ -116,6 +116,9 @@ void A3::processLuaSceneFile(const std::string & filename) {
 	if (!m_rootNode) {
 		std::cerr << "Could Not Open " << filename << std::endl;
 	}
+
+	root_original = m_rootNode->trans;
+	root_invoriginal = m_rootNode->invtrans;
 }
 
 //----------------------------------------------------------------------------------------
@@ -324,14 +327,23 @@ void A3::appLogic()
 					{
 						float trans_rate = 0.02;
 						vec2 trans = mouse_pos - last_mouse_pos;
-						m_rootNode->translate(vec3(trans.x*trans_rate, -trans.y*trans_rate, 0));
+						// m_rootNode->translate(vec3(trans.x*trans_rate, -trans.y*trans_rate, 0));
+
+						auto amount = vec3(trans.x*trans_rate, -trans.y*trans_rate, 0);
+
+						root_translation = glm::translate(amount) * root_translation;
+						root_invtranslation = root_invtranslation * glm::translate(-amount);
 					}
 
 					if(pressed_buttons.y)
 					{
 						float trans_rate = 0.02;
 						vec2 trans = mouse_pos - last_mouse_pos;
-						m_rootNode->translate(vec3(0, 0, trans.y*trans_rate));
+						// m_rootNode->translate(vec3(0, 0, trans.y*trans_rate));
+						auto amount = vec3(0, 0, trans.y*trans_rate);
+
+						root_translation = glm::translate(amount) * root_translation;
+						root_invtranslation = root_invtranslation * glm::translate(-amount);
 					}
 
 					if(pressed_buttons.z)
@@ -359,11 +371,21 @@ void A3::appLogic()
 							// apply rotation to root
 							// TODO INQUIRE ABOUT THE ROTATION OF A3MARK
 							// Assume (center of the puppet) is the scene center.
-							m_rootNode->rotateLocal(rot, glm::length(rot)*100);
-							// if(pressed_buttons.x) m_rootNode->rotateLocal(vec3(1,1,0), 0.5);
-							// if(pressed_buttons.z) m_rootNode->rotateLocal(vec3(0,1,0), 0.5);
+							// m_rootNode->rotateLocal(rot, glm::length(rot)*100);
+							float angle = glm::length(rot)*100;
+							mat4 rot_matrix = glm::rotate(degreesToRadians(angle), rot);
+							mat4 invrot_matrix = glm::rotate(degreesToRadians(-angle), rot);
+
+							root_rotation = root_rotation * rot_matrix;
+							root_invrotation = invrot_matrix * root_invrotation ;
+
+							
 						}
 					}
+
+					// Keeping track of rot and trans seperatly to be able to reset them.
+					m_rootNode->trans = root_translation * root_original * root_rotation;
+					m_rootNode->invtrans = root_invrotation * root_invoriginal * root_invtranslation;
 				}
 			    break;
 		// Joints
@@ -378,7 +400,7 @@ void A3::appLogic()
 						for (std::pair<unsigned int, JointSelection> selection : selected_geometry_nodes)
 						{
 							// std::cout << element.first << " :: " << element.second << std::endl;
-							selection.second.jnode->rotate('x', -trans_rate*(mouse_pos - last_mouse_pos).y);
+							selection.second.jnode->clampedRotate('x', -trans_rate*(mouse_pos - last_mouse_pos).y);
 						}
 					}
 				}
@@ -391,6 +413,36 @@ void A3::appLogic()
 	uploadCommonSceneUniforms();
 
 	last_mouse_pos = mouse_pos;
+}
+
+void A3::resetPosition()
+{
+	root_translation = mat4(1.0f);
+	root_invtranslation = mat4(1.0f);
+	
+	m_rootNode->trans = root_translation * root_original * root_rotation;
+	m_rootNode->invtrans = root_invrotation * root_invoriginal * root_invtranslation;
+}
+
+void A3::resetOrientation()
+{
+	root_rotation = mat4(1.0f);
+	root_invrotation = mat4(1.0f);
+	
+	m_rootNode->trans = root_translation * root_original * root_rotation;
+	m_rootNode->invtrans = root_invrotation * root_invoriginal * root_invtranslation;
+}
+
+void A3::resetJoints()
+{
+	while(stack_ptr != -1)
+	{
+		undo();
+	}
+
+	// TODO Release pointers!?
+	command_stack.clear();
+	changed_joints.clear();
 }
 
 //----------------------------------------------------------------------------------------
@@ -419,14 +471,26 @@ void A3::guiLogic()
 
 		// Add more gui elements here here ...
 
-
-		// Create Button, and check if it was clicked:
+		ImGui::Text( "Application");
+		if( ImGui::Button( "Reset Position" ) ) resetPosition();
+		if( ImGui::Button( "Reset Orientation" ) ) resetOrientation();
+		if( ImGui::Button( "Reset Joints" ) ) resetJoints();
+		if( ImGui::Button( "Reset All" ) ){ resetPosition(); resetOrientation(); resetJoints();}
 		if( ImGui::Button( "Quit Application" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 
-
 		ImGui::Text( "Options");
+		ImGui::Checkbox("Circle", &draw_trackball);
+		ImGui::Checkbox("Z-buffer", &zbuffer);
+		ImGui::Checkbox("Backface culling", &backface_culling);
+		ImGui::Checkbox("Frontface culling", &frontface_culling);
+
+		ImGui::Text( "Edit");
+		if( ImGui::Button( "Undo" ) ) undo();
+		if( ImGui::Button( "Redo" ) ) redo();
+
+		ImGui::Text( "Interaction Mode");
 		if(ImGui::RadioButton( "Position/Orientation", &current_mode, 0 ));
 		if(ImGui::RadioButton( "Joints", &current_mode, 1 ));
 
@@ -509,6 +573,15 @@ void A3::updateShaderUniforms(
 void A3::draw() {
 
 	glEnable( GL_DEPTH_TEST );
+
+	if(!zbuffer) glDisable(GL_DEPTH_TEST);
+
+	glDisable(GL_CULL_FACE);
+	if(backface_culling || frontface_culling) glEnable(GL_CULL_FACE);
+	if(backface_culling && frontface_culling) glCullFace(GL_FRONT_AND_BACK);
+	else if(backface_culling) glCullFace(GL_BACK);
+	else if(frontface_culling) glCullFace(GL_FRONT);
+
 	renderSceneGraph(*m_rootNode);
 
 
@@ -604,7 +677,8 @@ void A3::renderArcCircle() {
 		trackball_diam = std::min(0.5f*m_framebufferWidth, 0.5f*m_framebufferHeight);
 
 		glUniformMatrix4fv( m_location, 1, GL_FALSE, value_ptr( M ) );
-		glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
+		// Only draw circle if visual is enabled.
+		if(draw_trackball) glDrawArrays( GL_LINE_LOOP, 0, CIRCLE_PTS );
 	m_shader_arcCircle.disable();
 
 	glBindVertexArray(0);
@@ -755,35 +829,109 @@ bool A3::mouseButtonInputEvent (
 		CHECK_GL_ERRORS;
 	}
 
+	bool dragging_stopped = false;
+	bool rotation_drag_start = false;
+	bool rotation_drag_stop = false;
+
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
+
 		if (button == GLFW_MOUSE_BUTTON_LEFT){
 			// Respond to some key events.
 			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.x = true;/* current_options->x = true;*/}
 			else if(actions == GLFW_RELEASE){ pressed_buttons.x = false; 
 											  //  cout << pressed_buttons.x << ", " << pressed_buttons.y << ", " << pressed_buttons.z << endl;
-											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z) mouse_dragging = 0; 
+											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z){ mouse_dragging = 0; dragging_stopped = true; }
 											  mouse_dy = 0.0f; 
 											  /*current_options->x = false;*/}
 		}
 		else if (button == GLFW_MOUSE_BUTTON_MIDDLE){
 			// Respond to some key events.
-			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.y = true; /*current_options->y = true;*/}
+			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.y = true; rotation_drag_start = true;}
 			else if(actions == GLFW_RELEASE){ pressed_buttons.y = false; 
-											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z)mouse_dragging = 0; 
+											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z){ mouse_dragging = 0; dragging_stopped = true; }
 											  mouse_dy = 0.0f; 
+											  rotation_drag_stop = true;
 											  /*current_options->y = false;*/}
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT){
 			// Respond to some key events.
-			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.z = true; /*current_options->z = true;*/}
+			if(actions == GLFW_PRESS){ mouse_dragging = 2; pressed_buttons.z = true; rotation_drag_start = true;}
 			else if(actions == GLFW_RELEASE){ pressed_buttons.z = false; 
-											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z)mouse_dragging = 0; 
+											  if(!pressed_buttons.x && !pressed_buttons.y && !pressed_buttons.z){ mouse_dragging = 0; dragging_stopped = true; }
 											  mouse_dy = 0.0f; 
+											  rotation_drag_stop = true;
 											  /*current_options->z = false;*/}
 		}
 	}
 
+	if( rotation_drag_start && current_mode == 1 )
+	{
+		cout << "Drag started" << endl;
+		//Dragging started in jointmode
+		for (std::pair<unsigned int, JointSelection> selection : selected_geometry_nodes)
+		{
+			// Store initial values of joints
+			changed_joints[ selection.second.jnode ] = selection.second.jnode->getTransformPack();
+		}
+
+
+		// cout << "eee" << endl;
+		// If new actions done, erase possible redos.
+		if(!command_stack.empty()) command_stack.erase (command_stack.begin() + stack_ptr + 1, command_stack.end());
+		// cout << "aaaa" << endl;
+
+	}
+
+	if( rotation_drag_stop && current_mode == 1 )
+	{
+		cout << "Drag stopped" << endl;
+		//Set changes in joints as a new command.
+
+		CommandFrame new_frame;
+
+		for (std::pair<JointNode*, JointTransform> joint : changed_joints)
+		{
+			// std::cout << element.first << " :: " << element.second << std::endl;
+			// selection.second.jnode->rotate('x', -trans_rate*(mouse_pos - last_mouse_pos).y);
+			
+			new_frame.addCommand(new JointChangeCommand(joint.first, joint.second));
+		}
+		// cout << "eee" << endl;
+
+		command_stack.push_back(new_frame);
+
+		// cout << "aaaa" << endl;
+
+		stack_ptr += 1;
+
+
+		changed_joints.clear();
+		
+	}
+
+	cout << "command_stack_size: " << command_stack.size() << endl;
+
 	return eventHandled;
+}
+
+void A3::undo()
+{
+	if(!command_stack.empty() && stack_ptr >= 0) 
+	{
+		command_stack[stack_ptr].undo();
+		stack_ptr -= 1;
+	}
+}
+
+void A3::redo()
+{
+	// cout << "stack_ptr " << stack_ptr << endl;
+	if(!command_stack.empty()  && stack_ptr < int(command_stack.size()) - 1) 
+	{
+		// cout << "Redo" << endl;
+		stack_ptr += 1;
+		command_stack[stack_ptr].execute();
+	}
 }
 
 //----------------------------------------------------------------------------------------

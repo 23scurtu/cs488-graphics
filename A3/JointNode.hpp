@@ -7,8 +7,17 @@
 
 struct NotImplementedError {};
 
+struct JointTransform
+{
+	glm::mat4 trans;
+	glm::mat4 invtrans;
+	float x_rot;
+	float y_rot;
+};
+
 class JointNode : public SceneNode {
 public:
+	JointNode();
 	JointNode(const std::string & name);
 	virtual ~JointNode();
 
@@ -19,14 +28,21 @@ public:
 		double min, init, max;
 	};
 
-	float x_rot, y_rot;
+	float x_rot = 0;
+	float y_rot = 0;
 
 	void rotateLocalClamped(glm::vec3 axis, float angle);
 
 	// Rotates locally
 	void rotate(char axis, float angle) override;
+	void clampedRotate(char axis, float angle);
 	void rotate(glm::vec3 axis, float angle) override;
 	void rotateLocal(glm::vec3 axis, float angle) override;
+
+	void setTransformPack(const JointTransform &t);
+	JointTransform getTransformPack();
+
+	// JointNode shallowCopy();
 
 	JointRange m_joint_x, m_joint_y;
 };

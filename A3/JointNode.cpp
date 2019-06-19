@@ -15,6 +15,13 @@ JointNode::JointNode(const std::string& name)
 	m_nodeType = NodeType::JointNode;
 }
 
+// TODO Is it okay to have an empty string as scenenode name?
+JointNode::JointNode()
+	: SceneNode("")
+{
+	m_nodeType = NodeType::JointNode;
+}
+
 //---------------------------------------------------------------------------------------
 JointNode::~JointNode() {
 
@@ -42,6 +49,35 @@ void JointNode::set_joint_y(double min, double init, double max) {
 // }
 
 void JointNode::rotate(char axis, float angle) {
+	vec3 rot_axis;
+	float rot = degreesToRadians(angle);
+
+	switch (axis) {
+		// TODO Store rotation matrix seperatly and overwrite gettransform?
+		case 'x':
+			{
+			rot_axis = vec3(1,0,0);
+			break;
+			}
+		case 'y':
+			{
+			rot_axis = vec3(0,1,0);
+	        break;
+			}
+		case 'z':
+			rot_axis = vec3(0,0,1);
+	        break;
+		default:
+			break;
+	}
+	mat4 rot_matrix = glm::rotate(rot, rot_axis);
+	mat4 invrot_matrix = glm::rotate(-rot, rot_axis);
+
+	trans =  trans * rot_matrix;
+	invtrans = invrot_matrix * invtrans ;
+}
+
+void JointNode::clampedRotate(char axis, float angle) {
 	vec3 rot_axis;
 	float rot = 0.0f;
 
@@ -101,4 +137,22 @@ void JointNode::rotateLocal(vec3 axis, float angle) {
 	// invtrans = invrot_matrix * invtrans ;
 
 	throw NotImplementedError();
+}
+
+void JointNode::setTransformPack(const JointTransform &t)
+{
+	trans = t.trans;
+	invtrans = t.invtrans;
+	x_rot = t.x_rot;
+	y_rot = t.y_rot;
+}
+
+JointTransform JointNode::getTransformPack()
+{
+	JointTransform r;
+	r.trans = trans;
+	r.invtrans = invtrans;
+	r.x_rot = x_rot;
+	r.y_rot = y_rot;
+	return r;
 }
