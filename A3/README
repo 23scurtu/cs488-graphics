@@ -18,6 +18,8 @@ When the specification states "Dragging with the right mouse button held down sh
 controls the orientation of the puppet around its own origin", the origin is assumed to mean the origin of the root node.
 In lua, the node named "head" will have the special rotation properties of the head stated in the specification (more 
 specifically, the joint about the node marked "head" in the scene graph).
+When the specification states "Dragging with the right mouse button should be used purely for the operation of rotating the 
+head to the left or right." it is assumed we are using the relative y motion of the mouse.
 
 No additional meaningful details or assumptions have been made that were not included in the specification.
 
