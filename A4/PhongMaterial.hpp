@@ -10,6 +10,7 @@ class PhongMaterial : public Material {
 public:
   PhongMaterial(const glm::vec3& kd, const glm::vec3& ks, double shininess);
   virtual ~PhongMaterial();
+  glm::vec3 color(){ return m_kd; }; // TODO Temporary
 
 private:
   glm::vec3 m_kd;
