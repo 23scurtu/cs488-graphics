@@ -29,7 +29,7 @@ public:
     const glm::mat4& get_transform() const;
     const glm::mat4& get_inverse() const;
     
-    void set_transform(const glm::mat4& m);
+    // void set_transform(const glm::mat4& m);
     
     void add_child(SceneNode* child);
     
@@ -54,6 +54,7 @@ public:
 	unsigned int m_nodeId;
 
 private:
+    void set_transform(const glm::mat4& m);
 	// The number of SceneNode instances.
 	static unsigned int nodeInstanceCount;
 };

@@ -7,13 +7,14 @@
 #include "SceneNode.hpp"
 #include <iostream>
 #include <utility>
+#include <glm/gtx/vector_angle.hpp>
 
 #include "A4.hpp"
 
 using namespace std;
 using namespace glm;
 
-vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root);
+vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root, vec3 background = vec3(0.8,0.8,0.8));
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
 
 int cnt1 = 0;
@@ -109,8 +110,12 @@ void A4_Render(
 			vec3 ray = rays[y][x];
 
 			// cout << ray.x << ", " << ray.y << ", " << ray.z << endl;
+			vec3 background = vec3(0.4*(1 - float(y)/float(ny)) + 0.6, 0.3*(0.5*(1 - float(y)/float(ny))) + 0.7, float(y)/float(ny));
+			// pvec(background);
+			// cout << nx << endl;
 
-			vec3 color = rayColor(eye, ray, ambient, lights, root);
+			vec3 color = rayColor(eye, ray, ambient, lights, root, background);
+			
 
 			image(x,y,0) = color.r;
 			image(x,y,1) = color.g;
@@ -132,6 +137,8 @@ struct Collision
 	Collision(float t, vec3 normal, GeometryNode* object): t{t}, normal{normal}, object{object} {}
 };
 
+const float EPSILON = 0.0000001;
+
 Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = false)
 {
 	Collision result;
@@ -147,16 +154,12 @@ Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = fal
 		// cout << collision << endl;
 		if(collision.first != -1)
 		{
-			if((between_points && collision.first <= length(ray-eye) && collision.first >= 0) || !between_points)
+			if((between_points && collision.first <= length(ray-eye) && collision.first >= EPSILON) || !between_points)
 			{
 				result.t = collision.first;
 				result.object = geometryNode;
 				result.normal = collision.second;
 			}
-		}
-		else if (between_points && collision.first <= length(ray-eye) && collision.first >= 0)
-		{
-			
 		}
 	}
 
@@ -169,10 +172,16 @@ Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = fal
 	return result;
 }
 
-vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root)
+vec3 exp_n(vec3 i, float n)
+{
+	return vec3(pow( i.x, n), pow( i.y, n), pow( i.z, n));
+}
+
+vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root, vec3 background)
 {
 	vec3 result(0,0,0);
 	vec3 diffuse_light(0,0,0);
+	vec3 specular_light(0,0,0);
 
 	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(root);
 	// cout << "hey" << endl;
@@ -183,7 +192,8 @@ vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Lig
 	if(collision.object)
 	{
 		
-		vec3 collision_point = eye + normalize(ray-eye)*(collision.t-0.00001);
+		vec3 collision_point = eye + normalize(ray-eye)*(collision.t);//*(1.0f-EPSILON);
+		// collision_point = collision_point - collision.normal*EPSILON;
 		result += collision.object->m_material->color()*ambient;
 
 		for(auto light: lights)
@@ -192,32 +202,40 @@ vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Lig
 			auto light_collision = collide(collision_point, light->position, root, true);
 			float light_dist = length(light->position - collision_point);
 
-			// cout << std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) << endl;
-
 			if(!(light_collision.object))
 			{
 				cnt2++;
 				float light_attenuation = 1.0f/(light->falloff[2]*light_dist*light_dist + 
 												light->falloff[1]*light_dist + 
 												light->falloff[0]);
-				// light->colour = vec3(1.0/light->colour.x, 1.0/light->colour.y, 1.0/light->colour.z);
 
-				// cout << light_dist << endl;
-				// cout << light_attenuation << endl;
-				// cout << light_color.x << ", " << light_color.y << ", " << light_color.z << endl;
 				diffuse_light += light_attenuation*light->colour * 
 								 std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point)));
-				// cout << std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) << endl;
-				// pvec(collision.normal);
-				// pvec(light->position - collision_point);
-			}
+				vec3 v = normalize(eye-ray);
+				vec3 l = normalize(light->position - collision_point);
+				vec3 r = -l + 2*collision.normal*dot(l, collision.normal); // ggReflection
+				// vec3 v = normalize(eye - collision_point);
+				// diffuse_light += light_attenuation*light->colour * collision.object->m_material->ks() *
+				// 				 exp_n(r+v, collision.object->m_material->shininess());
+				// specular_light += light_attenuation*light->colour * collision.object->m_material->ks() * 
+				// 				 std::max(0.0f, dot(normalize(eye - collision_point), r));// exp_n(r+v, collision.object->m_material->shininess())
+
+				specular_light += collision.object->m_material->ks() *
+								  // TODO Why does no max here create concentric circle pattern?
+								  pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+				// cout << dot(r,v) << endl;
+				// pvec(light_attenuation*light->colour * collision.object->m_material->ks());
+				// cout << std::max(0.0f, dot(normalize(eye - collision_point), r))<< endl;
+
+			}	
 		}
 
 		result += diffuse_light;
+		result += specular_light;
 	}
 	else
 	{
-		result = vec3(0.8,0.8,0.8);
+		result = background;
 	}
 
 	return result;

@@ -7,6 +7,8 @@ class Material {
 public:
   virtual ~Material();
   virtual glm::vec3 color() = 0;
+  virtual glm::vec3 ks() = 0;
+  virtual float shininess() = 0;
 
 protected:
   Material();

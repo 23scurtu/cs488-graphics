@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <utility>
+class Mesh;
 
 class Primitive {
 public:
@@ -55,11 +56,11 @@ private:
 };
 
 class NonhierBox : public Primitive {
+  Mesh *mesh;
 public:
-  NonhierBox(const glm::vec3& pos, double size)
-    : m_pos(pos), m_size(size)
-  {
-  }
+  NonhierBox(const glm::vec3& pos, double size);
+
+  std::pair<float, glm::vec3> collide(glm::vec3 eye, glm::vec3 ray) override;
   
   virtual ~NonhierBox();
 
