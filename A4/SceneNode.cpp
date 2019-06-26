@@ -23,8 +23,8 @@ unsigned int SceneNode::nodeInstanceCount = 0;
 SceneNode::SceneNode(const std::string& name)
   : m_name(name),
 	m_nodeType(NodeType::SceneNode),
-	trans(mat4()),
-	invtrans(mat4()),
+	trans(mat4(1.0f)),
+	invtrans(mat4(1.0f)),
 	m_nodeId(nodeInstanceCount++)
 {
 
@@ -98,22 +98,24 @@ void SceneNode::rotate(char axis, float angle) {
 	// set_transform( rot_matrix * trans );
 
 	trans = rot_matrix * trans;
-	invtrans = invtrans * invrot_matrix;
+	// invtrans = invtrans * invrot_matrix;
+	invtrans = inverse(trans);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::scale(const glm::vec3 & amount) {
 	// set_transform( glm::scale(amount) * trans );
 	trans = glm::scale(amount) * trans;
-	invtrans = invtrans * glm::scale(1.0f/amount);
-	
+	// invtrans = invtrans * glm::scale(vec3(1.0f/amount.x, 1.0f/amount.y, 1.0f/amount.z));
+	invtrans = inverse(trans);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::translate(const glm::vec3& amount) {
 	// set_transform( glm::translate(amount) * trans );
 	trans = glm::translate(amount) * trans;
-	invtrans = invtrans * glm::translate(-amount);
+	// invtrans = invtrans * glm::translate(-amount);
+	invtrans = inverse(trans);
 }
 
 

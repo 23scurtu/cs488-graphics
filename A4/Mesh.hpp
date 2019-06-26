@@ -30,6 +30,7 @@ public:
   
 private:
 	friend class NonhierBox;
+	friend class Cube;
 
 	std::vector<glm::vec3> m_vertices;
 	std::vector<Triangle> m_faces;
