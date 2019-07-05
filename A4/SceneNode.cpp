@@ -98,24 +98,24 @@ void SceneNode::rotate(char axis, float angle) {
 	// set_transform( rot_matrix * trans );
 
 	trans = rot_matrix * trans;
-	// invtrans = invtrans * invrot_matrix;
-	invtrans = inverse(trans);
+	invtrans = invtrans * invrot_matrix;
+	// invtrans = inverse(trans);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::scale(const glm::vec3 & amount) {
 	// set_transform( glm::scale(amount) * trans );
 	trans = glm::scale(amount) * trans;
-	// invtrans = invtrans * glm::scale(vec3(1.0f/amount.x, 1.0f/amount.y, 1.0f/amount.z));
-	invtrans = inverse(trans);
+	invtrans = invtrans * glm::scale(vec3(1.0f/amount.x, 1.0f/amount.y, 1.0f/amount.z));
+	// invtrans = inverse(trans);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::translate(const glm::vec3& amount) {
 	// set_transform( glm::translate(amount) * trans );
 	trans = glm::translate(amount) * trans;
-	// invtrans = invtrans * glm::translate(-amount);
-	invtrans = inverse(trans);
+	invtrans = invtrans * glm::translate(-amount);
+	// invtrans = inverse(trans);
 }
 
 

@@ -23,6 +23,9 @@ struct Triangle
 	{}
 };
 
+// #define RENDER_BOUNDING_VOLUMES
+#define USE_BOUNDING_VOLUMES
+
 // A polygonal mesh.
 class Mesh : public Primitive {
 public:
@@ -32,14 +35,38 @@ private:
 	friend class NonhierBox;
 	friend class Cube;
 
+  	glm::vec3 min, max;
+	float bounding_radius = 0;
+	glm::vec3 bounding_center;
+	NonhierSphere* bounding_sphere = nullptr;
+
+	glm::vec3 min_components(glm::vec3 a, glm::vec3 b)
+	{
+		return glm::vec3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+	}
+
+	glm::vec3 max_components(glm::vec3 a, glm::vec3 b)
+	{
+		return glm::vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+	}
+
 	std::vector<glm::vec3> m_vertices;
 	std::vector<Triangle> m_faces;
 
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 	std::pair<float, glm::vec3> collide(glm::vec3 eye, glm::vec3 ray) override 
 	{
-		 std::pair<float, glm::vec3> result(-1,glm::vec3(0,0,0));
+		std::pair<float, glm::vec3> result(-1,glm::vec3(0,0,0));
 
+		#ifdef USE_BOUNDING_VOLUMES
+			//First collide with bounding sphere!
+			#ifdef RENDER_BOUNDING_VOLUMES
+				return bounding_sphere->collide(eye, ray);
+			#endif
+			#ifndef RENDER_BOUNDING_VOLUMES
+				if(bounding_sphere->collide(eye, ray).first == -1) return result;
+			#endif
+		#endif
 
 		glm::vec3 d = normalize(ray-eye);
 		// std::cout << m_faces.size() << std::endl;

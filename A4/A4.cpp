@@ -8,6 +8,7 @@
 #include <iostream>
 #include <utility>
 #include <glm/gtx/vector_angle.hpp>
+#include <chrono>
 
 #include "A4.hpp"
 
@@ -19,11 +20,35 @@ vec3 rayColor(vec3 eye,
 			  const glm::vec3 & ambient, 
 			  const std::list<Light *> & lights, 
 			  SceneNode * root,
-			  vec3 background = vec3(0.8,0.8,0.8));
+			  vec3 background = vec3(0.8,0.8,0.8),
+			  size_t max_hits = 3);
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
 
 int cnt1 = 0;
 int cnt2 = 0;
+
+bool ANTI_ALIASING = true;			   	// Enable regular sampling anti aliasing.
+const int ANTI_ALIASING_DIVISIONS = 3;	// Number of subdivisions to make at each pixel.
+
+const int subdivisions = ANTI_ALIASING_DIVISIONS;
+
+vec3 background(float x, float y)
+{
+	y = -y;
+	y *= 2;
+	// return vec3(0.4*y*(1 - y) + 0.6, 0.3*(0.5*(1 - y)) + 0.7, y);
+	vec3 middle_color(1,1,1);
+	vec3 bottom_color(0.2,0.2,0);
+	vec3 top_color(0.5,0.5,1);
+
+
+	// if(y >= 0.5 && y)
+	if(y >= 0.1) return (y-0.1)*top_color+(1-y+0.1)*middle_color;
+	// if(y < -0.5)
+	if(y < -0.1) return (sqrt(abs(y+0.1)*0.5))*bottom_color+(1-sqrt(abs(y+0.1)*0.5))*middle_color;
+
+	return middle_color;
+}
 
 void A4_Render(
 		// What to render  
@@ -43,13 +68,15 @@ void A4_Render(
 		const std::list<Light *> & lights
 ) {
 
+	auto start_time = std::chrono::high_resolution_clock::now();
+
   // Fill in raytracing code here...  
 
   float d = 5;
   float nx = image.width();
   float ny = image.height();
 
-  std::vector<std::vector<vec3>> rays(image.height(), std::vector<vec3>(image.width(), vec3(0,0,0)));
+//   std::vector<std::vector<vec3>> rays(image.height(), std::vector<vec3>(image.width(), vec3(0,0,0)));
 
   float window_h = 2.0f*d*tan(degreesToRadians(fovy)/2);
 
@@ -64,20 +91,20 @@ void A4_Render(
   };
   camera_rotation = transpose(camera_rotation);
 
-  for(int y = 0; y != image.height(); y++)
-  {
-	for(int x = 0; x != image.width(); x++)
-	{
-		rays[y][x] = vec3(x, y, 0);
-		rays[y][x] += vec3(-float(image.height())/2,-float(image.height())/2,d);
-		// TODO Check if scales
-		//TODO Should be minus?
-		rays[y][x] *= vec3(-window_h/nx, -window_h/ny, 1);
-		rays[y][x] = camera_rotation * rays[y][x];
-		rays[y][x] = normalize(rays[y][x]);
-		rays[y][x] += eye;
-	}
-  }
+//   for(int y = 0; y != image.height(); y++)
+//   {
+// 	for(int x = 0; x != image.width(); x++)
+// 	{
+// 		rays[y][x] = vec3(x, y, 0);
+// 		rays[y][x] += vec3(-float(image.height())/2,-float(image.height())/2,d);
+// 		// TODO Check if scales
+// 		//TODO Should be minus?
+// 		rays[y][x] *= vec3(-window_h/nx, -window_h/ny, 1);
+// 		rays[y][x] = camera_rotation * rays[y][x];
+// 		rays[y][x] = normalize(rays[y][x]);
+// 		rays[y][x] += eye;
+// 	}
+//   }
 
   std::cout << "Calling A4_Render(\n" <<
 		  "\t" << *root <<
@@ -109,19 +136,84 @@ void A4_Render(
 	// 	}
 	// }
 
+	std::vector<std::vector<vec3>> colors(image.height(), std::vector<vec3>(image.width(), vec3(0,0,0)));
+
 	for(int y = 0; y != image.height(); y++)
 	{
 		for(int x = 0; x != image.width(); x++)
 		{
-			vec3 ray = rays[y][x];
 
-			// cout << ray.x << ", " << ray.y << ", " << ray.z << endl;
-			vec3 background = vec3(0.4*(1 - float(y)/float(ny)) + 0.6, 0.3*(0.5*(1 - float(y)/float(ny))) + 0.7, float(y)/float(ny));
-			// pvec(background);
-			// cout << nx << endl;
+			if(ANTI_ALIASING)
+			{
 
-			vec3 color = rayColor(eye, ray, ambient, lights, root, background);
+				vec3 color(0,0,0);
+
+				for(int l = 0; l != subdivisions; l++)
+				{
+					for(int k = 0; k != subdivisions; k++)
+					{
+						vec3 ray;// = rays[y][x];
+
+
+						ray = vec3(x + float(2*k+1)/float(2*subdivisions), y + float(2*l+1)/float(2*subdivisions), 0);
+						ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
+						// TODO Check if scales
+						//TODO Should be minus?
+						ray *= vec3(-window_h/nx, -window_h/ny, 1);
+						ray = camera_rotation * ray;
+						ray = normalize(ray);
+						ray += eye;
+
+						// cout << ray.x << ", " << ray.y << ", " << ray.z << endl;
+						// vec3 background = vec3(0.4*(1 - float(y)/float(ny)) + 0.6, 0.3*(0.5*(1 - float(y)/float(ny))) + 0.7, float(y)/float(ny));
+						// pvec(background);
+						// cout << nx << endl;
+
+						color += rayColor(eye, ray, ambient, lights, root, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+						
+						
+					}
+				}
+
+				colors[y][x] = (1.0f/(subdivisions*subdivisions))* color;
+			}
+
+			else
+			{
+				vec3 ray;// = rays[y][x];
+
+				ray = vec3(x, y, 0);
+				ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
+				// TODO Check if scales
+				//TODO Should be minus?
+				ray *= vec3(-window_h/nx, -window_h/ny, 1);
+				ray = camera_rotation * ray;
+				ray = normalize(ray);
+				ray += eye;
+
+				colors[y][x] = rayColor(eye, ray, ambient, lights, root, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+			}
 			
+		}
+	}
+
+	float max_intensity = 1.0f;
+	// Normalize color - desaturates
+	// for(int y = 0; y != image.height(); y++)
+	// {
+	// 	for(int x = 0; x != image.width(); x++)
+	// 	{
+	// 		if(colors[y][x].x > max_intensity) max_intensity = colors[y][x].x;
+	// 		if(colors[y][x].y > max_intensity) max_intensity = colors[y][x].y;
+	// 		if(colors[y][x].z > max_intensity) max_intensity = colors[y][x].z;
+	// 	}
+	// }
+	
+	for(int y = 0; y != image.height(); y++)
+	{
+		for(int x = 0; x != image.width(); x++)
+		{
+			auto color = colors[y][x]*(1.0f/max_intensity);
 
 			image(x,y,0) = color.r;
 			image(x,y,1) = color.g;
@@ -129,8 +221,12 @@ void A4_Render(
 		}
 	}
 
-	cout << cnt1 << endl;
-	cout << cnt2 << endl;
+	// cout << cnt1 << endl;
+	// cout << cnt2 << endl;
+
+	auto finish_time = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> elapsed = finish_time - start_time;
+	std::cout << "Elapsed time: " << elapsed.count() << " s\n";
 }
 
 struct Collision
@@ -144,7 +240,7 @@ struct Collision
 	Collision(float t, vec3 normal, GeometryNode* object): t{t}, normal{normal}, object{object} {}
 };
 
-const float EPSILON = 0.00001;
+const float EPSILON = 0.0001;
 
 Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = false)
 {
@@ -220,7 +316,7 @@ vec3 exp_n(vec3 i, float n)
 	return vec3(pow( i.x, n), pow( i.y, n), pow( i.z, n));
 }
 
-vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root, vec3 background)
+vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root, vec3 background, size_t max_hits)
 {
 	vec3 result(0,0,0);
 	vec3 diffuse_light(0,0,0);
@@ -266,10 +362,29 @@ vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Lig
 				// specular_light += light_attenuation*light->colour * collision.object->m_material->ks() * 
 				// 				 std::max(0.0f, dot(normalize(eye - collision_point), r));// exp_n(r+v, collision.object->m_material->shininess())
 
+				// if(max_hits - 1 == 0)
+				// {
 				specular_light += //(1.0f/lights.size())*
-								  collision.object->m_material->ks() *
-								  // TODO Why does no max here create concentric circle pattern?
-								  pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+									collision.object->m_material->ks() *
+									// TODO Why does no max here create concentric circle pattern?
+									pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+				
+				// else
+				// {
+				// if(max_hits - 1 != 0)
+				// {
+				// 	vec3 reflected_color = rayColor(collision_point, collision_point + r, ambient, lights, root, background, max_hits-1);
+				// 	reflected_color.x = std::max(0.0f, reflected_color.x);
+				// 	reflected_color.y = std::max(0.0f, reflected_color.y);
+				// 	reflected_color.z = std::max(0.0f, reflected_color.z);
+
+				// 	specular_light += //(1.0f/lights.size())*
+				// 						collision.object->m_material->ks() *
+				// 						// // TODO Why does no max here create concentric circle pattern?
+				// 						// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour *
+				// 						reflected_color;
+				// }
+				
 				// cout << dot(r,v) << endl;
 				// pvec(light_attenuation*light->colour * collision.object->m_material->ks());
 				// cout << std::max(0.0f, dot(normalize(eye - collision_point), r))<< endl;

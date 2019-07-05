@@ -21,12 +21,18 @@ Mesh::Mesh( const std::string& fname )
 		if( code == "v" ) {
 			ifs >> vx >> vy >> vz;
 			m_vertices.push_back( glm::vec3( vx, vy, vz ) );
+			min = min_components(min, glm::vec3( vx, vy, vz ));
+			max = max_components(max, glm::vec3( vx, vy, vz ));
 		} else if( code == "f" ) {
 			ifs >> s1 >> s2 >> s3;
 			m_faces.push_back( Triangle( s1 - 1, s2 - 1, s3 - 1 ) );
 		}
 	}
 
+	bounding_center = min + (max-min)/2;
+	bounding_radius = length(max-min)/2 + 0.00001;
+
+	bounding_sphere = new NonhierSphere(bounding_center, bounding_radius);
 	// std::cout <<"mesh size " << m_faces.size() << std::endl;
 }
 
