@@ -8,6 +8,9 @@
 // #include "cs488-framework/ObjFileDecoder.hpp"
 #include "Mesh.hpp"
 
+using namespace glm;
+using namespace std;
+
 Mesh::Mesh( const std::string& fname )
 	: m_vertices()
 	, m_faces()
@@ -61,64 +64,63 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 {
 	std::pair<float, glm::vec3> result(-1,glm::vec3(0,0,0));
 
-	#ifdef USE_BOUNDING_VOLUMES
-		//First collide with bounding sphere!
-		#ifdef RENDER_BOUNDING_VOLUMES
-			return bounding_sphere->collide(eye, ray);
-		#endif
-		#ifndef RENDER_BOUNDING_VOLUMES
-			if(bounding_sphere->collide(eye, ray).first == -1) return result;
-		#endif
-	#endif
+	// #ifdef USE_BOUNDING_VOLUMES
+	// 	//First collide with bounding sphere!
+	// 	#ifdef RENDER_BOUNDING_VOLUMES
+	// 		return bounding_sphere->collide(eye, ray);
+	// 	#endif
+	// 	#ifndef RENDER_BOUNDING_VOLUMES
+	// 		if(bounding_sphere->collide(eye, ray).first == -1) return result;
+	// 	#endif
+	// #endif
 
 	glm::vec3 d = normalize(ray-eye);
 	// std::cout << m_faces.size() << std::endl;
 
 	for(Triangle tri: m_faces)
 	{
-		const glm::vec3 &a = m_vertices[tri.v1];
-		const glm::vec3 &b = m_vertices[tri.v2];
-		const glm::vec3 &c = m_vertices[tri.v3];
-		glm::mat3 A = glm::transpose(glm::mat3{a.x-b.x, a.x-c.x, d.x,
-												a.y-b.y, a.y-c.y, d.y,
-												a.z-b.z, a.z-c.z, d.z});
-		float det_A = glm::determinant(A);
+		const glm::vec3 &v1 = m_vertices[tri.v1];
+		const glm::vec3 &v2 = m_vertices[tri.v2];
+		const glm::vec3 &v3 = m_vertices[tri.v3];
 
-		float det_gamma = glm::determinant(glm::transpose(
-			glm::mat3{a.x-b.x, a.x-eye.x, d.x,
-						a.y-b.y, a.y-eye.y, d.y,
-						a.z-b.z, a.z-eye.z, d.z,}
-		));
-		float gamma = det_gamma/det_A;
+		// Möller–Trumbore intersection algorithm
 
-		float det_t = glm::determinant(glm::transpose(
-			glm::mat3{a.x-b.x, a.x-c.x, a.x-eye.x,
-						a.y-b.y, a.y-c.y, a.y-eye.y,
-						a.z-b.z, a.z-c.z, a.z-eye.z,}
-		));
+		const float EPSILON = 0.00001;
 
-		if(gamma < 0 || gamma > 1) continue;
+		vec3 ray_vec = normalize(ray - eye);
 
-		float det_beta = glm::determinant(glm::transpose(
-			glm::mat3{a.x-eye.x, a.x-c.x, d.x,
-						a.y-eye.y, a.y-c.y, d.y,
-						a.z-eye.z, a.z-c.z, d.z,}
-		));
+		vec3 e1 = v2 - v1;
+		vec3 e2 = v3 - v1;
 
-		float beta = det_beta/det_A;
-		float t = det_t/det_A;
+		float a, f, u, v;
 
-		// std::cout << result.first << std::endl;
-		// std::cout << beta << std::endl;
+		vec3 h = cross(ray_vec, e2);
+		a = dot(e1, h);
 
-		if(beta > 0 && gamma > 0 && beta + gamma < 1)
+		if(a > -EPSILON && a < EPSILON) continue;
+		f = 1.0/a;
+		vec3 s = eye - v1;
+		u = f * dot(s, h);
+
+		if(u < 0.0f || u > 1.0f) continue;
+
+		vec3 q = cross(s, e1);
+		v = f * dot(ray_vec, q);
+
+		if(v < 0.0f || u + v > 1.0f) continue;
+
+		float t = f * dot(e2, q);
+		if(t > EPSILON)
 		{
+			// cout << "aaaaaa" << endl;
+
 			if(result.first == -1 || t < result.first)
 			{
 				//TODO Check that cross product is correct order.
-				result = std::make_pair(t, normalize(glm::cross(c-b, a-b)));
+				result = std::make_pair(t, normalize(cross(e1, e2)));
 			}
 		}
+		// else continue
 	}
 
 	return result;

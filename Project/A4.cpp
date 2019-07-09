@@ -21,7 +21,8 @@ vec3 rayColor(vec3 eye,
 			  const std::list<Light *> & lights, 
 			  SceneNode * root,
 			  vec3 background = vec3(0.8,0.8,0.8),
-			  size_t max_hits = 2);
+			  size_t max_hits = 4);
+			//   bool inside_solid = false);
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
 
 int cnt1 = 0;
@@ -251,6 +252,11 @@ Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = fal
 
 	// std::cout << "hey" << std::endl;
 
+	// SEGDFAULTS HERE
+	// cout << "hi"  << endl;
+	// cout << int(root->m_nodeId) << endl;
+	// cout << "bye"  << endl;
+
 	if(root->m_nodeType == NodeType::GeometryNode)
 	{
 		GeometryNode * geometryNode = static_cast<GeometryNode *>(root);
@@ -292,19 +298,31 @@ vec3 exp_n(vec3 i, float n)
 	return vec3(pow( i.x, n), pow( i.y, n), pow( i.z, n));
 }
 
-vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Light *> & lights, SceneNode * root, vec3 background, size_t max_hits)
+vec3 rayColor(vec3 eye, vec3 ray, 
+			  const glm::vec3 & ambient, 
+			  const std::list<Light *> & lights, 
+			  SceneNode * root, vec3 background, 
+			  size_t max_hits)
+			//   bool inside_solid)
 {
 	// auto start_time = std::chrono::high_resolution_clock::now();
+
+	// cout << "hi"  << endl;
 
 	vec3 result(0,0,0);
 	vec3 diffuse_light(0,0,0);
 	vec3 specular_light(0,0,0);
 	vec3 reflected_light(0,0,0);
+	// vec3 transmitted_light(0,0,0);
 
 	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(root);
 	// cout << "hey" << endl;
+	
+	// cout << root << endl;
 
 	auto collision = collide(eye, ray, root);// geometryNode->collide(eye, ray);
+
+	// cout << "bye"  << endl;
 
 	collision.normal = normalize(collision.normal);
 
@@ -329,84 +347,105 @@ vec3 rayColor(vec3 eye, vec3 ray, const glm::vec3 & ambient, const std::list<Lig
 
 		// cout << collision.t << endl;
 
-		for(auto light: lights)
-		{
-			cnt1++;
-			auto light_collision = collide(collision_point, light->position, root, true);
-			float light_dist = length(light->position - collision_point);// light_collision.t;
+		vec3 v = normalize(ray - eye);
 
-			if(!(light_collision.object))
+		// if(!inside_solid)
+		// {
+			for(auto light: lights)
 			{
-				float light_attenuation = 1.0f/(light->falloff[2]*light_dist*light_dist + 
-												light->falloff[1]*light_dist + 
-												light->falloff[0]);
-				// cout << length(collision.normal) << endl;
+				cnt1++;
+				auto light_collision = collide(collision_point, light->position, root, true);
+				float light_dist = length(light->position - collision_point);// light_collision.t;
 
-				diffuse_light += light_attenuation*light->colour * 
-								 std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) *
-								 collision.object->m_material->color();
-				vec3 v = normalize(eye-ray);
-				vec3 l = normalize(light->position - collision_point);
-				vec3 r = -l + 2*collision.normal*dot(l, collision.normal); // ggReflection
-				// vec3 v = normalize(eye - collision_point);
-				// diffuse_light += light_attenuation*light->colour * collision.object->m_material->ks() *
-				// 				 exp_n(r+v, collision.object->m_material->shininess());
-				// specular_light += light_attenuation*light->colour * collision.object->m_material->ks() * 
-				// 				 std::max(0.0f, dot(normalize(eye - collision_point), r));// exp_n(r+v, collision.object->m_material->shininess())
+				if(!(light_collision.object))
+				{
+					float light_attenuation = 1.0f/(light->falloff[2]*light_dist*light_dist + 
+													light->falloff[1]*light_dist + 
+													light->falloff[0]);
+					// cout << length(collision.normal) << endl;
 
-				// if(max_hits - 1 == 0)
-				// {
-				// if(max_hits == 3)
-				// {
-				specular_light += collision.object->m_material->ks() *
-									// TODO Why does no max here create concentric circle pattern?
-									pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
-				// }
-				// else
-				// {
+					diffuse_light += light_attenuation*light->colour * 
+									std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) *
+									collision.object->m_material->color();
+					vec3 v = normalize(eye-ray);
+					vec3 l = normalize(light->position - collision_point);
+					vec3 r = -l + 2*collision.normal*dot(l, collision.normal); // ggReflection
+					// vec3 v = normalize(eye - collision_point);
+					// diffuse_light += light_attenuation*light->colour * collision.object->m_material->ks() *
+					// 				 exp_n(r+v, collision.object->m_material->shininess());
+					// specular_light += light_attenuation*light->colour * collision.object->m_material->ks() * 
+					// 				 std::max(0.0f, dot(normalize(eye - collision_point), r));// exp_n(r+v, collision.object->m_material->shininess())
 
+					// if(max_hits - 1 == 0)
+					// {
+					// if(max_hits == 3)
+					// {
+					specular_light += collision.object->m_material->ks() *
+										// TODO Why does no max here create concentric circle pattern?
+										pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+					// }
+					// else
+					// {
+
+					
+					// cout << dot(r,v) << endl;
+					// pvec(light_attenuation*light->colour * collision.object->m_material->ks());
+					// cout << std::max(0.0f, dot(normalize(eye - collision_point), r))<< endl;
+
+				}	
+			}
+			
+			if(max_hits > 0)
+			{
 				
-				// cout << dot(r,v) << endl;
-				// pvec(light_attenuation*light->colour * collision.object->m_material->ks());
-				// cout << std::max(0.0f, dot(normalize(eye - collision_point), r))<< endl;
+				vec3 r = (v - 2*collision.normal*dot(v, collision.normal)); // ggReflection
+				// cout << "hi"  << endl;
+				vec3 reflected_color = rayColor(collision_point, collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
+				// If bounce and miss do not add background color! ^
 
-			}	
-		}
+				// reflected_color.x = std::max(0.0f, reflected_color.x);
+				// reflected_color.y = std::max(0.0f, reflected_color.y);
+				// reflected_color.z = std::max(0.0f, reflected_color.z);
 
-		if(max_hits > 0)
-		{
-			vec3 v = normalize(ray - eye);
-			vec3 r = (v - 2*collision.normal*dot(v, collision.normal)); // ggReflection
-			vec3 reflected_color = rayColor(collision_point, collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
-			// If bounce and miss do not add background color! ^
+				// pvec(collision.hit_point);
+				// cout << collision.t << endl;
+
+				reflected_light += //(1.0f/lights.size())*
+									collision.object->m_material->ks() * 
+									// 0.6*
+									// // TODO Why does no max here create concentric circle pattern?
+									// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())* //light_attenuation*light->colour *
+									reflected_color;
+			}
+		// }
 
 
-			// pvec(r);
-			// pvec(collision.normal);
-			// pvec(normalize(ray-eye));
-			// cout << endl;
+		// if(max_hits > 0)
+		// {
+		// 	// Transmittence
+		// 	// temp constants
+		// 	float TRANSMISSION_COEFFICIENT = 0.9;
+		// 	float n_i = 1.4f;
+		// 	float n_t = 1.0f;
 
-			// reflected_color.x = std::max(0.0f, reflected_color.x);
-			// reflected_color.y = std::max(0.0f, reflected_color.y);
-			// reflected_color.z = std::max(0.0f, reflected_color.z);
+		// 	if (inside_solid) std::swap(n_i, n_t);
+			
+		// 	float n_frac = n_i/n_t;
+		// 	float v_dot_N = dot(v, collision.normal);
 
-			// pvec(collision.hit_point);
-			// cout << collision.t << endl;
+		// 	vec3 transmitted_ray = (-n_frac*(v_dot_N) - sqrt(1-n_frac*n_frac*(1.0f-v_dot_N*v_dot_N)))*collision.normal + n_frac*v;
 
-			// pvec(specular_light);
-			reflected_light += //(1.0f/lights.size())*
-								collision.object->m_material->ks() * 
-								// 0.6*
-								// // TODO Why does no max here create concentric circle pattern?
-								// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())* //light_attenuation*light->colour *
-								reflected_color;
+		// 	//collision_point + transmitted_ray
+		// 			// cout << "inside" << inside_solid << endl;
+		// 	// transmitted_light += TRANSMISSION_COEFFICIENT*(vec3(1,1,1)-collision.object->m_material->ks()) *
+		// 	// 					rayColor(collision_point, collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
 
-			// pvec(collision.object->m_material->ks() * reflected_color); exit(0);
-		}
+		// }
 
 		result += diffuse_light;
 		result += specular_light;
-		result += reflected_light;
+		result += reflected_light;	
+		// result += transmitted_light;
 	}
 	else
 	{
