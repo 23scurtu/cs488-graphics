@@ -21,8 +21,8 @@ vec3 rayColor(vec3 eye,
 			  const std::list<Light *> & lights, 
 			  SceneNode * root,
 			  vec3 background = vec3(0.8,0.8,0.8),
-			  size_t max_hits = 4);
-			//   bool inside_solid = false);
+			  size_t max_hits = 4, 
+			  bool inside_solid = false);
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
 
 int cnt1 = 0;
@@ -234,7 +234,7 @@ struct Collision
 	Collision(float t, vec3 normal, GeometryNode* object): t{t}, normal{normal}, object{object} {}
 };
 
-const float EPSILON = 0.0001;
+const float EPSILON = 0.0002;
 
 Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = false)
 {
@@ -267,7 +267,8 @@ Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = fal
 		if(collision.first != -1)
 		{
 			cnt2++;
-			if((between_points && collision.first <= length(ray-eye) && collision.first >= EPSILON) || !between_points)
+			if((between_points && collision.first <= length(ray-eye) && collision.first >= EPSILON) || 
+			   (!between_points && collision.first >= EPSILON))
 			{
 				
 				result.t = collision.first;
@@ -302,8 +303,8 @@ vec3 rayColor(vec3 eye, vec3 ray,
 			  const glm::vec3 & ambient, 
 			  const std::list<Light *> & lights, 
 			  SceneNode * root, vec3 background, 
-			  size_t max_hits)
-			//   bool inside_solid)
+			  size_t max_hits,
+			  bool inside_solid)
 {
 	// auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -313,7 +314,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 	vec3 diffuse_light(0,0,0);
 	vec3 specular_light(0,0,0);
 	vec3 reflected_light(0,0,0);
-	// vec3 transmitted_light(0,0,0);
+	vec3 transmitted_light(0,0,0);
 
 	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(root);
 	// cout << "hey" << endl;
@@ -349,8 +350,8 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 		vec3 v = normalize(ray - eye);
 
-		// if(!inside_solid)
-		// {
+		if(!inside_solid)
+		{
 			for(auto light: lights)
 			{
 				cnt1++;
@@ -400,7 +401,8 @@ vec3 rayColor(vec3 eye, vec3 ray,
 				
 				vec3 r = (v - 2*collision.normal*dot(v, collision.normal)); // ggReflection
 				// cout << "hi"  << endl;
-				vec3 reflected_color = rayColor(collision_point, collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
+				vec3 new_collision_point = collision_point + EPSILON * collision.normal;
+				vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
 				// If bounce and miss do not add background color! ^
 
 				// reflected_color.x = std::max(0.0f, reflected_color.x);
@@ -417,35 +419,47 @@ vec3 rayColor(vec3 eye, vec3 ray,
 									// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())* //light_attenuation*light->colour *
 									reflected_color;
 			}
-		// }
+		}
 
+		float TRANSMISSION_COEFFICIENT = 0.4;
 
-		// if(max_hits > 0)
-		// {
-		// 	// Transmittence
-		// 	// temp constants
-		// 	float TRANSMISSION_COEFFICIENT = 0.9;
-		// 	float n_i = 1.4f;
-		// 	float n_t = 1.0f;
+		if(max_hits > 0)
+		{
+			// Transmittence
+			// temp constants
+			float n_i = 1.0f;
+			float n_t = 1.2f;
 
-		// 	if (inside_solid) std::swap(n_i, n_t);
+			if (inside_solid) std::swap(n_i, n_t);
+
+			vec3 N = collision.normal;
+			if(inside_solid) N = -N;
 			
-		// 	float n_frac = n_i/n_t;
-		// 	float v_dot_N = dot(v, collision.normal);
+			float n_frac = n_i/n_t;
+			float v_dot_N = dot(v, N);
 
-		// 	vec3 transmitted_ray = (-n_frac*(v_dot_N) - sqrt(1-n_frac*n_frac*(1.0f-v_dot_N*v_dot_N)))*collision.normal + n_frac*v;
+			vec3 transmitted_ray = (-n_frac*(v_dot_N) - sqrt(1.0f-n_frac*n_frac*(1.0f-v_dot_N*v_dot_N)))*N + n_frac*v;
 
-		// 	//collision_point + transmitted_ray
-		// 			// cout << "inside" << inside_solid << endl;
-		// 	// transmitted_light += TRANSMISSION_COEFFICIENT*(vec3(1,1,1)-collision.object->m_material->ks()) *
-		// 	// 					rayColor(collision_point, collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+			//collision_point + transmitted_ray
+					// cout << "inside" << inside_solid << endl;
 
-		// }
+			// EPSILON NEEDS TO BE FAR TOO HIGH
+			vec3 new_collision_point = collision_point + 0.5 * -N;
+
+			if(collision.t < 0.1)
+			cout << collision.t << endl;
+
+			transmitted_light += TRANSMISSION_COEFFICIENT* // (vec3(1,1,1)-collision.object->m_material->ks()) *
+								 rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+
+		}
 
 		result += diffuse_light;
 		result += specular_light;
 		result += reflected_light;	
-		// result += transmitted_light;
+
+		result *= (1-TRANSMISSION_COEFFICIENT);
+		result += transmitted_light;
 	}
 	else
 	{
