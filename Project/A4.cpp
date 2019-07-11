@@ -421,14 +421,15 @@ vec3 rayColor(vec3 eye, vec3 ray,
 			}
 		}
 
-		float TRANSMISSION_COEFFICIENT = 0.4;
+		float TRANSMISSION_COEFFICIENT = collision.object->m_material->tc(); //0.4;
+		// cout << TRANSMISSION_COEFFICIENT << endl;
 
-		if(max_hits > 0)
+		if(TRANSMISSION_COEFFICIENT > 0.01f && max_hits > 0)
 		{
 			// Transmittence
 			// temp constants
 			float n_i = 1.0f;
-			float n_t = 1.2f;
+			float n_t = collision.object->m_material->ir();
 
 			if (inside_solid) std::swap(n_i, n_t);
 
@@ -444,12 +445,11 @@ vec3 rayColor(vec3 eye, vec3 ray,
 					// cout << "inside" << inside_solid << endl;
 
 			// EPSILON NEEDS TO BE FAR TOO HIGH
-			vec3 new_collision_point = collision_point + 0.5 * -N;
+			vec3 new_collision_point = collision_point + 0.5 * -N; /// EPSILON
 
-			if(collision.t < 0.1)
-			cout << collision.t << endl;
+			// if(collision.t < 0.1) cout << collision.t << endl;
 
-			transmitted_light += TRANSMISSION_COEFFICIENT* // (vec3(1,1,1)-collision.object->m_material->ks()) *
+			transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
 								 rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
 
 		}

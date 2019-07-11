@@ -9,6 +9,8 @@ public:
   virtual glm::vec3 color() = 0;
   virtual glm::vec3 ks() = 0;
   virtual float shininess() = 0;
+  virtual float tc() = 0;
+  virtual float ir() = 0;
 
 protected:
   Material();

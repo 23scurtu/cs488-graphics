@@ -4,7 +4,7 @@
 #include "Mesh.hpp"
 #include "A4.hpp"
 
-const float EPSILON = 0.01;
+const float EPSILON = 0.01;//0.01;
 
 Primitive::~Primitive()
 {
@@ -110,7 +110,7 @@ std::pair<float, glm::vec3> NonhierSphere::collide(glm::vec3 eye, glm::vec3 ray)
     float inv_radius = 1.0f/m_radius;
 
     if(B*B - 4*A*C < 0.0f) return std::make_pair(-1.0f, glm::vec3(0,0,0));
-    else if (B*B - 4.0f*A*C == 0.0f)
+    else if (B*B - 4.0f*A*C <= 0.0001f)
     {
         float t = -2.0f*C/B;
         return std::make_pair(t, inv_radius*(eye + d*t - m_pos));
