@@ -7,6 +7,8 @@ shared/imgui**/Makefile
 
 build
 
+*.png
+
 *.a
 *.o
 *.swp
