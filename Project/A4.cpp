@@ -334,7 +334,12 @@ vec3 rayColor(vec3 eye, vec3 ray,
 		vec3 collision_point = collision.hit_point; 
 		// vec3 collision_point = eye + normalize(ray-eye)*(collision.t);//*(1.0f-EPSILON);
 		// collision_point = collision_point - collision.normal*EPSILON;
-		result += collision.object->m_material->color()*ambient;
+
+		vec3 kd = collision.object->m_material->color();
+		if(collision.object->m_primitive->textured())
+			kd = collision.object->m_primitive->getLastHitColor();
+
+		result += kd*ambient;
 		
 		collision.normal = normalize(collision.normal); 
 
@@ -367,7 +372,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 					diffuse_light += light_attenuation*light->colour * 
 									std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) *
-									collision.object->m_material->color();
+									kd;
 					vec3 v = normalize(eye-ray);
 					vec3 l = normalize(light->position - collision_point);
 					vec3 r = -l + 2*collision.normal*dot(l, collision.normal); // ggReflection

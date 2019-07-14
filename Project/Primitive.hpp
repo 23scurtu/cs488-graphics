@@ -11,9 +11,13 @@ class Mesh;
 // const float EPSILON = 0.00001;
 
 class Primitive {
+protected:
+  bool m_textured = false;
 public:
   virtual ~Primitive();
   virtual std::pair<float, glm::vec3> collide(glm::vec3 eye, glm::vec3 ray){ return std::make_pair(-1.0f, glm::vec3(0,0,0)); };
+  virtual bool textured(){ return m_textured; }
+  virtual glm::vec3 getLastHitColor(){ return glm::vec3(0,0,0); }
 };
 
 class Sphere : public Primitive {
