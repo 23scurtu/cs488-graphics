@@ -96,3 +96,18 @@ solution "BuildStaticLibs"
         files { 
             "shared/lodepng/lodepng.cpp"
         }
+
+    -- Build lodepng static library
+    project "tinyobjloader"
+        kind "StaticLib"
+        language "C++"
+        location "build"
+        objdir "build"
+        targetdir "lib"
+        includedirs (includeDirList)
+        includedirs {
+            "shared/tinyobjloader"
+        }
+        files { 
+            "shared/tinyobjloader/tiny_obj_loader.cc"
+        }
