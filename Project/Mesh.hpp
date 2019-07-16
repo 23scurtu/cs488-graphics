@@ -11,6 +11,12 @@
 #include "Primitive.hpp"
 #include "lodepng/lodepng.h"
 
+// enum TextureType
+// {
+// 	DIFFUSE_COLOR,
+// 	NORMAL_MAP
+// };
+
 struct Texture
 {
 	const float inverse_pixels = 1.0f/255.0f;
@@ -18,7 +24,7 @@ struct Texture
 	unsigned height = 0;
 	std::vector<unsigned char> data;
 
-	Texture(std::string filename)
+	Texture(std::string filename/*, TextureType texture_type = DIFFUSE_COLOR*/)
 	{
 		//decode
 		unsigned error = lodepng::decode(data, width, height, filename.c_str());
@@ -58,6 +64,30 @@ struct Triangle
 	{}
 };
 
+struct TangentBasis
+{
+	glm::vec3 normal;
+	glm::vec3 tangent;
+	glm::vec3 bitangent;
+
+	glm::mat3 TBN;
+
+	TangentBasis() = default;
+	TangentBasis( glm::vec3 normal, glm::vec3 tangent, glm::vec3 bitangent )
+		: normal( normal )
+		, tangent( tangent )
+		, bitangent( bitangent )
+	{}
+
+	void calcTBN()
+	{
+		TBN = glm::transpose(glm::mat3{tangent.x, bitangent.x, normal.x,
+						tangent.y, bitangent.y, normal.y,
+						tangent.z, bitangent.z, normal.z}); 
+						//TBN Should be whats visually seen here transposed (glm is already transposed)
+	}
+};
+
 // #define RENDER_BOUNDING_VOLUMES
 #define USE_BOUNDING_VOLUMES
 
@@ -86,13 +116,17 @@ private:
 	}
 
 	std::vector<glm::vec3> m_vertices;
+
 	std::vector<glm::vec2> m_texture_coords;
 
 	std::vector<Triangle> m_face_textures;
 	std::vector<Triangle> m_faces;
 
 	std::vector<int> m_texture_ids;
+	// std::vector<int> m_normal_map_ids;
 	std::vector<Texture> m_textures;
+	std::vector<Texture> m_normal_maps;
+	std::vector<TangentBasis> m_tangents;
 
 	glm::vec2 last_hit_uv_coords;
 	int last_hit_index;
@@ -100,4 +134,5 @@ private:
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 	std::pair<float, glm::vec3> collide(glm::vec3 eye, glm::vec3 ray) override;
 	glm::vec3 getLastHitColor() override;
+	glm::vec3 getLastHitNormal() override;
 };

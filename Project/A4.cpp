@@ -9,6 +9,7 @@
 #include <utility>
 #include <glm/gtx/vector_angle.hpp>
 #include <chrono>
+#include <random>
 
 #include "A4.hpp"
 
@@ -32,6 +33,14 @@ bool ANTI_ALIASING = false;			   	// Enable regular sampling anti aliasing.
 const int ANTI_ALIASING_DIVISIONS = 3;	// Number of subdivisions to make at each pixel.
 
 const int subdivisions = ANTI_ALIASING_DIVISIONS;
+
+default_random_engine generator;
+uniform_real_distribution<float> uni_dist(0.0f, 1.0f);
+
+float uni()
+{
+	return uni_dist(generator);
+}
 
 vec3 background(float x, float y)
 {
@@ -338,6 +347,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 		vec3 kd = collision.object->m_material->color();
 		if(collision.object->m_primitive->textured())
 			kd = collision.object->m_primitive->getLastHitColor();
+		// TODO Uncomment for texture
 
 		result += kd*ambient;
 		

@@ -78,6 +78,15 @@ Mesh::Mesh( const std::string& fname )
 		// cout << vx << ", " << vy << ", " << vz << endl;
 	}
 
+	// for(size_t i = 0; i < attrib.normals.size(); i+=3)
+	// {
+	// 	tinyobj::real_t vx = attrib.normals[i+0];
+	// 	tinyobj::real_t vy = attrib.normals[i+1];
+	// 	tinyobj::real_t vz = attrib.normals[i+2];
+
+	// 	m_normals.push_back( glm::vec3( vx, vy, vz ) );
+	// }
+
 	for(size_t i = 0; i < attrib.texcoords.size(); i+=2)
 	{
 		tinyobj::real_t u = attrib.texcoords[i+0];
@@ -90,6 +99,7 @@ Mesh::Mesh( const std::string& fname )
 	for(auto material: materials)
 	{
 		m_textures.emplace_back( basedir + "/" + material.diffuse_texname );
+		m_normal_maps.emplace_back( basedir + "/" + material.bump_texname );
 	}
 
 	// Loop over shapes
@@ -149,6 +159,41 @@ Mesh::Mesh( const std::string& fname )
 				m_texture_ids.push_back(material_id);
 			// cout << "aaaaaaaaaaaaaaaaaaaaaa" << material_id << endl;
 		}
+	}
+
+	//TODO Ensure its always safe to access texture coords
+	for(size_t i = 0; i < m_faces.size(); i++)
+	{
+		const Triangle &tri = m_faces[i];
+		const Triangle &tri_uv =  m_face_textures[i]; //m_texture_coords
+
+		if(tri.v1 == -1 || tri_uv.v1 == -1 || 
+		   tri.v2 == -1 || tri_uv.v2 == -1 ||
+		   tri.v3 == -1 || tri_uv.v3 == -1) continue; // TODO Need to check all 1 -3
+
+		TangentBasis basis;
+		vec3 e1 = m_vertices[tri.v2] - m_vertices[tri.v1];
+		vec3 e2 = m_vertices[tri.v3] - m_vertices[tri.v1];
+
+		cout << "lol" << endl;
+		vec2 uv_e1 = m_texture_coords[tri_uv.v2] - m_texture_coords[tri_uv.v1];
+		cout << "bye" << endl;
+		vec2 uv_e2 = m_texture_coords[tri_uv.v3] - m_texture_coords[tri_uv.v1];
+		
+
+		float r = 1.0f / (uv_e1.x * uv_e2.y - uv_e1.y * uv_e2.x);
+		
+		// TODO Fix normal calc
+		basis.normal = normalize(cross(e1, e2));
+		basis.tangent = normalize((e1 * uv_e2.y   - e2 * uv_e1.y)*r);
+        basis.bitangent = normalize((e2 * uv_e1.x   - e1 * uv_e2.x)*r);
+		// normalize(cross(basis.normal, basis.tangent));
+
+		basis.calcTBN();
+		m_tangents.push_back(basis);
+		//Make code to convert to per vertex instead of per triangle
+
+		
 	}
 
 	if(!m_texture_coords.empty() && !materials.empty())
@@ -250,6 +295,10 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 										 v * m_texture_coords[tri_texture.v3];
 
 					last_hit_index = tri_i;
+
+					if(tri.v1 != -1 || tri.v2 != -1 || tri.v3 != -1)
+					// Additional check if this is texture mapped
+						result.second = getLastHitNormal();
 				}
 
 			}
@@ -273,4 +322,31 @@ glm::vec3 Mesh::getLastHitColor()
 	// TODO Seg faulting due to image not having any elements!
 	// cout << m_mat << endl;
 	// return vec3(last_hit_uv_coords.x, last_hit_uv_coords.y, 1 - last_hit_uv_coords.x - last_hit_uv_coords.y); 
+}
+
+glm::vec3 Mesh::getLastHitNormal()
+{
+	if(last_hit_index == -1) return m_tangents[last_hit_index].normal; // Check correct
+	Texture & tex = m_normal_maps[m_texture_ids[ last_hit_index]];
+
+	//TODO Interpolate normal
+	//TODO Make function take in ints instead and round here
+	vec3 c00 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width, last_hit_uv_coords.y*tex.height) - vec3(1.0f,1.0f,1.0f);
+	vec3 c01 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width, last_hit_uv_coords.y*tex.height+1) - vec3(1.0f,1.0f,1.0f);
+	vec3 c10 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width+1, last_hit_uv_coords.y*tex.height) - vec3(1.0f,1.0f,1.0f);
+	vec3 c11 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width+1, last_hit_uv_coords.y*tex.height+1) - vec3(1.0f,1.0f,1.0f);
+
+	float u_p = last_hit_uv_coords.x*tex.width - int(last_hit_uv_coords.x*tex.width);
+	float v_p = last_hit_uv_coords.y*tex.height - int(last_hit_uv_coords.y*tex.height);
+
+	// cout << u_p << ", " << v_p << endl;
+
+	vec3 normal = c00*(1.0f-u_p)*(1.0f - v_p) +
+				  c01*(1.0f-u_p)*(v_p) +
+				  c10*(u_p)*(1.0f - v_p) + 
+				  c11*u_p*v_p;
+
+	// For brick texture, need to and rotate 180 and flip horizonal....
+
+	return normalize(m_tangents[last_hit_index].TBN*normal);
 }
