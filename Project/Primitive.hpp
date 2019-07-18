@@ -14,6 +14,7 @@ class Primitive {
 protected:
   bool m_textured = false;
   bool m_normal_mapped = false;
+  bool m_vertex_normals = false;
 
 public:
   virtual ~Primitive();
@@ -21,7 +22,7 @@ public:
   virtual bool textured(){ return m_textured; }
   virtual bool normal_mapped(){ return m_normal_mapped; }
   virtual glm::vec3 getLastHitColor(){ return glm::vec3(0,0,0); }
-  virtual glm::vec3 getLastHitNormal(){ return glm::vec3(0,0,0); };
+  virtual glm::vec3 getLastHitNormal(glm::vec3 *interpolated_normal = nullptr){ return glm::vec3(0,0,0); };
 };
 
 class Sphere : public Primitive {

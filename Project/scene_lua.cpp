@@ -278,6 +278,43 @@ int gr_mesh_cmd(lua_State* L)
 	return 1;
 }
 
+// Create a polygonal Mesh node
+extern "C"
+int gr_cmesh_cmd(lua_State* L)
+{
+	GRLUA_DEBUG_CALL;
+
+	gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+	data->node = 0;
+
+	const char* name = luaL_checkstring(L, 1);
+	const char* obj_fname = luaL_checkstring(L, 2);
+
+  luaL_checktype(L, 3, LUA_TBOOLEAN);
+  bool phong_shading = lua_toboolean( L, 3 );
+  
+	std::string sfname(obj_fname);
+
+	// Use a dictionary structure to make sure every mesh is loaded
+	// at most once.
+	auto i = mesh_map.find(sfname);
+	Mesh *mesh = nullptr;
+
+	if( i == mesh_map.end() ) {
+		mesh = new Mesh(obj_fname, phong_shading);
+		mesh_map[sfname] = mesh;
+	} else {
+		mesh = i->second;
+	}
+
+	data->node = new GeometryNode(name, mesh);
+
+	luaL_getmetatable(L, "gr.node");
+	lua_setmetatable(L, -2);
+
+	return 1;
+}
+
 // Make a Point light
 extern "C"
 int gr_light_cmd(lua_State* L)
@@ -560,6 +597,7 @@ static const luaL_Reg grlib_functions[] = {
   {"nh_sphere", gr_nh_sphere_cmd},
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},
+  {"cmesh", gr_cmesh_cmd},
   {"light", gr_light_cmd},
   {"render", gr_render_cmd},
   {0, 0}

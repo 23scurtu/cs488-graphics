@@ -456,6 +456,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 				vec3 r = (v - 2*collision.normal*dot(v, collision.normal)); // ggReflection
 				// cout << "hi"  << endl;
 				vec3 new_collision_point = collision_point + EPSILON * collision.normal;
+				// TODO Causes artifacting if objects are too small???
 
 				float exponent = (1.0f/(PHONG_EXPONENT+1))*REFLECTIVE_GLOSSINESS;
 
@@ -489,7 +490,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 					reflected_light *= 1.0f/reflection_rays;
 				}
-				else
+				else // TODO Threshold this
 				{
 					vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
 					reflected_light += collision.object->m_material->ks() * reflected_color;

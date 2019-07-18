@@ -13,7 +13,7 @@
 using namespace glm;
 using namespace std;
 
-Mesh::Mesh( const std::string& fname )
+Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 	: m_vertices()
 	, m_faces()
 {
@@ -78,14 +78,30 @@ Mesh::Mesh( const std::string& fname )
 		// cout << vx << ", " << vy << ", " << vz << endl;
 	}
 
-	// for(size_t i = 0; i < attrib.normals.size(); i+=3)
-	// {
-	// 	tinyobj::real_t vx = attrib.normals[i+0];
-	// 	tinyobj::real_t vy = attrib.normals[i+1];
-	// 	tinyobj::real_t vz = attrib.normals[i+2];
+	if(!m_vertices.empty())
+	{
+		min = m_vertices[0];
+		max = m_vertices[0];
+	}
+	for( vec3 v: m_vertices ) {
+		min = min_components(min, v);
+		max = max_components(max, v);
+	}
 
-	// 	m_normals.push_back( glm::vec3( vx, vy, vz ) );
-	// }
+	bounding_center = min + (max-min)/2.0f;
+	bounding_radius = length(max-min)/2.0f + 0.00001;
+
+	// TODO Make more efficient bounding sphere that only checks determinant
+	bounding_sphere = new NonhierSphere(bounding_center, bounding_radius);
+
+	for(size_t i = 0; i < attrib.normals.size(); i+=3)
+	{
+		tinyobj::real_t vx = attrib.normals[i+0];
+		tinyobj::real_t vy = attrib.normals[i+1];
+		tinyobj::real_t vz = attrib.normals[i+2];
+
+		m_normals.push_back( glm::vec3( vx, vy, vz ) );
+	}
 
 	for(size_t i = 0; i < attrib.texcoords.size(); i+=2)
 	{
@@ -98,8 +114,16 @@ Mesh::Mesh( const std::string& fname )
 
 	for(auto material: materials)
 	{
-		m_textures.emplace_back( basedir + "/" + material.diffuse_texname );
-		m_normal_maps.emplace_back( basedir + "/" + material.bump_texname );
+		if(!material.diffuse_texname.empty())
+		{
+			m_textured = true;
+			m_textures.emplace_back( basedir + "/" + material.diffuse_texname );
+		}
+		if(!material.bump_texname.empty())
+		{
+			m_normal_mapped = true;
+			m_normal_maps.emplace_back( basedir + "/" + material.bump_texname );
+		}
 	}
 
 	// Loop over shapes
@@ -127,6 +151,9 @@ Mesh::Mesh( const std::string& fname )
 												 shapes[s].mesh.indices[index_offset + 1].texcoord_index,
 												 shapes[s].mesh.indices[index_offset + 2].texcoord_index ));
 
+			m_face_normals.push_back( Triangle( shapes[s].mesh.indices[index_offset].normal_index,
+										 		shapes[s].mesh.indices[index_offset+1].normal_index,
+											    shapes[s].mesh.indices[index_offset+2].normal_index));
 			// TODO Load in texture!
 
 			// for (size_t v = 0; v < fv; v++) {
@@ -175,9 +202,7 @@ Mesh::Mesh( const std::string& fname )
 		vec3 e1 = m_vertices[tri.v2] - m_vertices[tri.v1];
 		vec3 e2 = m_vertices[tri.v3] - m_vertices[tri.v1];
 
-		cout << "lol" << endl;
 		vec2 uv_e1 = m_texture_coords[tri_uv.v2] - m_texture_coords[tri_uv.v1];
-		cout << "bye" << endl;
 		vec2 uv_e2 = m_texture_coords[tri_uv.v3] - m_texture_coords[tri_uv.v1];
 		
 
@@ -196,10 +221,10 @@ Mesh::Mesh( const std::string& fname )
 		
 	}
 
-	if(!m_texture_coords.empty() && !materials.empty())
-	{
-		m_textured = true;
-	} 
+	// Same texture coordinates are always used for normal map and diffuse map?
+	if(m_texture_coords.empty()){ m_textured = false; m_normal_mapped = false; }
+	if(!m_normals.empty()) m_vertex_normals = true;
+	this->PHONG_SHADING = PHONG_SHADING;
 }
 
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
@@ -230,10 +255,10 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 	// #ifdef USE_BOUNDING_VOLUMES
 	// 	//First collide with bounding sphere!
 	// 	#ifdef RENDER_BOUNDING_VOLUMES
-	// 		return bounding_sphere->collide(eye, ray);
+	// return bounding_sphere->collide(eye, ray);
 	// 	#endif
 	// 	#ifndef RENDER_BOUNDING_VOLUMES
-	// 		if(bounding_sphere->collide(eye, ray).first == -1) return result;
+	if(bounding_sphere->collide(eye, ray).first == -1) return result;
 	// 	#endif
 	// #endif
 
@@ -285,25 +310,33 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 				result = std::make_pair(t, normalize(cross(e1, e2)));
 				// cout << u << ", " << v << endl;
 
-				if(m_textured)
-				{
-					Triangle tri_texture = m_face_textures[tri_i];
+				const Triangle & tri_texture = m_face_textures[tri_i];
 
+				// If textured update the last hit uv coords and last hit index.
+				if(m_textured && (tri_texture.v1 != -1 && tri_texture.v2 != -1 && tri_texture.v3 != -1))
+				{
 					// last_hit_uv_coords = vec2(u,v);
 					last_hit_uv_coords = (1 - u - v) * m_texture_coords[tri_texture.v1] + 
 										 u * m_texture_coords[tri_texture.v2] + 
 										 v * m_texture_coords[tri_texture.v3];
 
 					last_hit_index = tri_i;
-
-					if(tri.v1 != -1 || tri.v2 != -1 || tri.v3 != -1)
-					// Additional check if this is texture mapped
-						result.second = getLastHitNormal();
 				}
 
+				if(PHONG_SHADING && m_vertex_normals && (tri.v1 != -1 && tri.v2 != -1 && tri.v3 != -1)) // TODO ands?
+				{
+					// Additional check if this is texture mapped
+					Triangle & tri_normals = m_face_normals[tri_i];
+					vec3 interpolated_normal = (1 - u - v) * m_normals[tri_normals.v1] + 
+												u * m_normals[tri_normals.v2] + 
+												v * m_normals[tri_normals.v3];
+
+					if(m_normal_mapped) result.second = getLastHitNormal(&interpolated_normal);
+					else result.second = interpolated_normal;
+				}
+				else if(m_normal_mapped) result.second = getLastHitNormal();
 			}
 		}
-		// else continue
 	}
 
 	return result;
@@ -324,9 +357,21 @@ glm::vec3 Mesh::getLastHitColor()
 	// return vec3(last_hit_uv_coords.x, last_hit_uv_coords.y, 1 - last_hit_uv_coords.x - last_hit_uv_coords.y); 
 }
 
-glm::vec3 Mesh::getLastHitNormal()
+//TODO Change name?
+glm::vec3 Mesh::getLastHitNormal(glm::vec3 *interpolated_normal)
 {
 	if(last_hit_index == -1) return m_tangents[last_hit_index].normal; // Check correct
+
+	// Make a copy of tangent basis so TBN can be recalculated if needed.
+	TangentBasis tangent_basis = m_tangents[last_hit_index];
+
+	// If Phong shading, use a new normal passed in thats interpolated.
+	if(interpolated_normal)
+	{
+		tangent_basis.normal = *interpolated_normal;
+		tangent_basis.calcTBN();
+	}
+
 	Texture & tex = m_normal_maps[m_texture_ids[ last_hit_index]];
 
 	//TODO Interpolate normal

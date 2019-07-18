@@ -94,7 +94,7 @@ struct TangentBasis
 // A polygonal mesh.
 class Mesh : public Primitive {
 public:
-  Mesh( const std::string& fname );
+  Mesh( const std::string& fname , bool PHONG_SHADING = false);
   
 private:
 	friend class NonhierBox;
@@ -115,12 +115,17 @@ private:
 		return glm::vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
 	}
 
+	bool PHONG_SHADING = false;
+
 	std::vector<glm::vec3> m_vertices;
+	std::vector<glm::vec3> m_normals;
 
 	std::vector<glm::vec2> m_texture_coords;
 
+	// TODO Make names more descriptive
 	std::vector<Triangle> m_face_textures;
 	std::vector<Triangle> m_faces;
+	std::vector<Triangle> m_face_normals;
 
 	std::vector<int> m_texture_ids;
 	// std::vector<int> m_normal_map_ids;
@@ -134,5 +139,5 @@ private:
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 	std::pair<float, glm::vec3> collide(glm::vec3 eye, glm::vec3 ray) override;
 	glm::vec3 getLastHitColor() override;
-	glm::vec3 getLastHitNormal() override;
+	glm::vec3 getLastHitNormal(glm::vec3 *interpolated_normal = nullptr) override;
 };
