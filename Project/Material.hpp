@@ -11,6 +11,8 @@ public:
   virtual float shininess() = 0;
   virtual float tc() = 0;
   virtual float ir() = 0;
+  virtual float r_g() = 0;
+  virtual float t_g() = 0;
 
 protected:
   Material();

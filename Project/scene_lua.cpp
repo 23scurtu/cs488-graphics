@@ -394,12 +394,16 @@ int gr_cmaterial_cmd(lua_State* L)
   double shininess = luaL_checknumber(L, 3);
   double transmission_coefficient = luaL_checknumber(L, 4);
   double n_i = luaL_checknumber(L, 5);
-  
+  double reflective_glossiness = luaL_checknumber(L, 6);
+  double transmissive_glossiness = luaL_checknumber(L, 7);
+
   data->material = new PhongMaterial(glm::vec3(kd[0], kd[1], kd[2]),
                                      glm::vec3(ks[0], ks[1], ks[2]),
                                      shininess,
                                      transmission_coefficient,
-                                     n_i);
+                                     n_i,
+                                     reflective_glossiness,
+                                     transmissive_glossiness);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);

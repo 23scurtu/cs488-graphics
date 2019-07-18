@@ -8,6 +8,7 @@
 #include <iostream>
 #include <utility>
 #include <glm/gtx/vector_angle.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 #include <chrono>
 #include <random>
 
@@ -365,6 +366,13 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 		vec3 v = normalize(ray - eye);
 
+		const float PHONG_EXPONENT = collision.object->m_material->shininess();
+		float REFLECTIVE_GLOSSINESS = collision.object->m_material->r_g(); //0.1f;
+		float REFRACTIVE_GLOSSINESS = collision.object->m_material->t_g(); //0.003f; // TODO Debug black dot in middle!
+		
+		size_t reflection_rays = 2; // For glossy // TODO Causes exponential time increase
+		size_t transmission_rays = 2;
+
 		if(!inside_solid)
 		{
 			for(auto light: lights)
@@ -396,9 +404,40 @@ vec3 rayColor(vec3 eye, vec3 ray,
 					// {
 					// if(max_hits == 3)
 					// {
-					specular_light += collision.object->m_material->ks() *
-										// TODO Why does no max here create concentric circle pattern?
-										pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+					
+					float exponent = (1.0f/(PHONG_EXPONENT+1))*REFLECTIVE_GLOSSINESS;
+
+					if(exponent > 0.000001 && reflection_rays) // Otherwise glossiness does nothing PHONG_EXPONENT > 0.0f && REFLECTIVE_GLOSSINESS > 0.00001f && 
+					{
+						for(size_t i = 1; i <= reflection_rays; i++)
+						{
+							// Apply glossy reflection to lights
+							float alpha = acos(pow(1-uni(), exponent ));
+							float beta = 2.0f*M_PI*uni();
+
+							vec3 alpha_axis = cross(r, collision.normal);
+							if(alpha_axis == vec3(0,0,0)) alpha_axis = vec3(r.y,-r.x,0); // Will always be perpendicular
+
+							vec3 temp = rotate(r, alpha, alpha_axis);
+							r = rotate(temp, beta, r);
+
+							// If pertubation causes refraction, skip.
+							if(dot(r, collision.normal) <= 0.001) {i--; continue;}
+
+							specular_light += collision.object->m_material->ks() *
+												// TODO Why does no max here create concentric circle pattern?
+												pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+						}
+
+						specular_light *= 1.0f/reflection_rays;
+					}
+					else
+					{
+						specular_light += collision.object->m_material->ks() *
+											// TODO Why does no max here create concentric circle pattern?
+											pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
+					}
+
 					// }
 					// else
 					// {
@@ -417,22 +456,45 @@ vec3 rayColor(vec3 eye, vec3 ray,
 				vec3 r = (v - 2*collision.normal*dot(v, collision.normal)); // ggReflection
 				// cout << "hi"  << endl;
 				vec3 new_collision_point = collision_point + EPSILON * collision.normal;
-				vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
-				// If bounce and miss do not add background color! ^
 
-				// reflected_color.x = std::max(0.0f, reflected_color.x);
-				// reflected_color.y = std::max(0.0f, reflected_color.y);
-				// reflected_color.z = std::max(0.0f, reflected_color.z);
+				float exponent = (1.0f/(PHONG_EXPONENT+1))*REFLECTIVE_GLOSSINESS;
 
-				// pvec(collision.hit_point);
-				// cout << collision.t << endl;
+				if(exponent > 0.000001 && reflection_rays) // Otherwise glossiness does nothing
+				{
+					for(size_t i = 1; i <= reflection_rays; i++)
+					{
+						// Apply glossy reflection
+						float alpha = acos(pow(1-uni(), exponent ));
+						float beta = 2.0f*M_PI*uni();
 
-				reflected_light += //(1.0f/lights.size())*
-									collision.object->m_material->ks() * 
-									// 0.6*
-									// // TODO Why does no max here create concentric circle pattern?
-									// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())* //light_attenuation*light->colour *
-									reflected_color;
+						vec3 alpha_axis = cross(r, collision.normal);
+						if(alpha_axis == vec3(0,0,0)) alpha_axis = vec3(r.y,-r.x,0); // Will always be perpendicular
+
+						vec3 temp = rotate(r, alpha, alpha_axis);
+						r = rotate(temp, beta, r);
+
+						// If pertubation causes refraction, skip.
+						if(dot(r, collision.normal) <= 0.001) {i--; continue;}
+
+						vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
+						// If bounce and miss do not add background color! ^
+
+						reflected_light += //(1.0f/lights.size())*
+											collision.object->m_material->ks() * 
+											// 0.6*
+											// // TODO Why does no max here create concentric circle pattern?
+											// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())* //light_attenuation*light->colour *
+											reflected_color;
+					}
+
+					reflected_light *= 1.0f/reflection_rays;
+				}
+				else
+				{
+					vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, root, vec3(0,0,0), max_hits-1);
+					reflected_light += collision.object->m_material->ks() * reflected_color;
+				}
+				
 			}
 		}
 
@@ -449,24 +511,50 @@ vec3 rayColor(vec3 eye, vec3 ray,
 			if (inside_solid) std::swap(n_i, n_t);
 
 			vec3 N = collision.normal;
-			if(inside_solid) N = -N;
+			if(inside_solid) N = -N; // TODO Fix determining whether or not inside solid
 			
 			float n_frac = n_i/n_t;
 			float v_dot_N = dot(v, N);
 
 			vec3 transmitted_ray = (-n_frac*(v_dot_N) - sqrt(1.0f-n_frac*n_frac*(1.0f-v_dot_N*v_dot_N)))*N + n_frac*v;
 
-			//collision_point + transmitted_ray
-					// cout << "inside" << inside_solid << endl;
-
 			// EPSILON NEEDS TO BE FAR TOO HIGH
 			vec3 new_collision_point = collision_point + 0.5 * -N; /// EPSILON
 
-			// if(collision.t < 0.1) cout << collision.t << endl;
+			if(0.5f* REFRACTIVE_GLOSSINESS > 0.00000001f  && transmission_rays) // Otherwise glossiness does nothing
+			{
+				for(size_t i = 1; i <= transmission_rays; i++)
+				{
+					// Apply glossy transmission
+					float alpha = acos(pow(1-uni(), 0.5f* REFRACTIVE_GLOSSINESS) );//(1.0f/(PHONG_EXPONENT+1));
+					float beta = 2.0f*M_PI*uni();
 
-			transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
-								 rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+					vec3 alpha_axis = cross(transmitted_ray, N);
+					if(alpha_axis == vec3(0,0,0)) alpha_axis = vec3(transmitted_ray.y,-transmitted_ray.x,0); // Will always be perpendicular
 
+					vec3 temp = rotate(transmitted_ray, alpha, alpha_axis);
+					transmitted_ray = rotate(temp, beta, transmitted_ray);
+
+					// If pertubation causes a reflection, skip.
+					if(dot(transmitted_ray, N) >= -0.01) {i--; continue;} // TODO SHOULD BE -0.01?
+
+					// Transmit light
+					transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
+										rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+				}
+
+				// transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
+				// 						rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+
+				// transmitted_light *= (1.0f/(transmission_rays + 1));
+				transmitted_light *= 1.0f/transmission_rays;
+			}
+			else
+			{
+				transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
+										rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+			}
+			
 		}
 
 		result += diffuse_light;
