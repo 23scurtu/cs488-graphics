@@ -409,7 +409,8 @@ vec3 rayColor(vec3 eye, vec3 ray,
 						area_diffuse += light_attenuation*area_light->color * 
 										std::max(0.0f, dot(collision.normal, normalize(position - collision_point))) *
 										kd;
-
+										
+						vec3 v = normalize(eye-ray);
 						area_specular += specular_color(v, position, area_light->color, collision_point, collision, 
 														light_attenuation, PHONG_EXPONENT, REFLECTIVE_GLOSSINESS, reflection_rays);
 					}
@@ -436,42 +437,10 @@ vec3 rayColor(vec3 eye, vec3 ray,
 					diffuse_light += light_attenuation*light->colour * 
 									std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) *
 									kd;
+
 					vec3 v = normalize(eye-ray);
-					vec3 l = normalize(light->position - collision_point);
-					vec3 r = -l + 2*collision.normal*dot(l, collision.normal); // ggReflection
-					
-					float exponent = (1.0f/(PHONG_EXPONENT+1))*REFLECTIVE_GLOSSINESS;
-
-					if(exponent > 0.000001 && reflection_rays) // Otherwise glossiness does nothing PHONG_EXPONENT > 0.0f && REFLECTIVE_GLOSSINESS > 0.00001f && 
-					{
-						for(size_t i = 1; i <= reflection_rays; i++)
-						{
-							// Apply glossy reflection to lights
-							float alpha = acos(pow(1-uni(), exponent ));
-							float beta = 2.0f*M_PI*uni();
-
-							vec3 alpha_axis = cross(r, collision.normal);
-							if(alpha_axis == vec3(0,0,0)) alpha_axis = vec3(r.y,-r.x,0); // Will always be perpendicular
-
-							vec3 temp = rotate(r, alpha, alpha_axis);
-							r = rotate(temp, beta, r);
-
-							// If pertubation causes refraction, skip.
-							if(dot(r, collision.normal) <= 0.001) {i--; continue;}
-
-							specular_light += collision.object->m_material->ks() *
-												// TODO Why does no max here create concentric circle pattern?
-												pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
-						}
-
-						specular_light *= 1.0f/reflection_rays;
-					}
-					else
-					{
-						specular_light += collision.object->m_material->ks() *
-											// TODO Why does no max here create concentric circle pattern?
-											pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
-					}
+					specular_light += specular_color(v, light->position, light->colour, collision_point, collision, 
+														light_attenuation, PHONG_EXPONENT, REFLECTIVE_GLOSSINESS, reflection_rays);
 				}	
 			}
 			
