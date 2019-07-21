@@ -116,21 +116,6 @@ void A4_Render(
   };
   camera_rotation = transpose(camera_rotation);
 
-//   for(int y = 0; y != image.height(); y++)
-//   {
-// 	for(int x = 0; x != image.width(); x++)
-// 	{
-// 		rays[y][x] = vec3(x, y, 0);
-// 		rays[y][x] += vec3(-float(image.height())/2,-float(image.height())/2,d);
-// 		// TODO Check if scales
-// 		//TODO Should be minus?
-// 		rays[y][x] *= vec3(-window_h/nx, -window_h/ny, 1);
-// 		rays[y][x] = camera_rotation * rays[y][x];
-// 		rays[y][x] = normalize(rays[y][x]);
-// 		rays[y][x] += eye;
-// 	}
-//   }
-
   std::cout << "Calling A4_Render(\n" <<
 		  "\t" << *root <<
           "\t" << "Image(width:" << image.width() << ", height:" << image.height() << ")\n"
@@ -156,10 +141,8 @@ void A4_Render(
 	{
 		for(int x = 0; x != image.width(); x++)
 		{
-
 			if(ANTI_ALIASING)
 			{
-
 				vec3 color(0,0,0);
 
 				for(int l = 0; l != subdivisions; l++)
@@ -167,7 +150,6 @@ void A4_Render(
 					for(int k = 0; k != subdivisions; k++)
 					{
 						vec3 ray;// = rays[y][x];
-
 
 						ray = vec3(x + float(2*k+1)/float(2*subdivisions), y + float(2*l+1)/float(2*subdivisions), 0);
 						ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
@@ -178,20 +160,12 @@ void A4_Render(
 						ray = normalize(ray);
 						ray += eye;
 
-						// cout << ray.x << ", " << ray.y << ", " << ray.z << endl;
-						// vec3 background = vec3(0.4*(1 - float(y)/float(ny)) + 0.6, 0.3*(0.5*(1 - float(y)/float(ny))) + 0.7, float(y)/float(ny));
-						// pvec(background);
-						// cout << nx << endl;
-
-						
-
 						color += rayColor(eye, ray, ambient, lights, area_lights, root, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
 					}
 				}
 
 				colors[y][x] = (1.0f/(subdivisions*subdivisions))* color;
 			}
-
 			else
 			{
 				vec3 ray;// = rays[y][x];
@@ -207,7 +181,6 @@ void A4_Render(
 				ray += eye;
 
 				// 1.18*10^-5 s
-				// cout << endl;///////////////////////////////////////////////
 				colors[y][x] = rayColor(eye, ray, ambient, lights, area_lights, root, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
 			}
 			
@@ -215,6 +188,7 @@ void A4_Render(
 	}
 
 	float max_intensity = 1.0f;
+	
 	// Normalize color - desaturates
 	// for(int y = 0; y != image.height(); y++)
 	// {
@@ -238,9 +212,6 @@ void A4_Render(
 		}
 	}
 
-	// cout << cnt1 << endl;
-	// cout << cnt2 << endl;
-
 	auto finish_time = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> elapsed = finish_time - start_time;
 	std::cout << "Elapsed time: " << elapsed.count() << " s\n";
@@ -263,34 +234,21 @@ const float EPSILON = 0.0002;
 Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = false)
 {
 	vec3 orig_eye = eye;
-	// pvec(ray);
-	// pvec(ray);
-	// cout << endl;
 	vec3 orig_ray = ray;
 
 	ray = vec3(root->invtrans * vec4(ray, 1.0f));
 	eye = vec3(root->invtrans * vec4(eye, 1.0f));
 
 	Collision result;
-	// cout << result.t <<endl;
-
-	// std::cout << "hey" << std::endl;
-
-	// SEGDFAULTS HERE
-	// cout << "hi"  << endl;
-	// cout << int(root->m_nodeId) << endl;
-	// cout << "bye"  << endl;
 
 	if(root->m_nodeType == NodeType::GeometryNode)
 	{
 		GeometryNode * geometryNode = static_cast<GeometryNode *>(root);
 
 		auto collision = geometryNode->collide(eye, ray);
-		cnt1++;
 		// cout << collision << endl;
 		if(collision.first != -1)
 		{
-			cnt2++;
 			if((between_points && collision.first <= length(ray-eye) && collision.first >= EPSILON) || 
 			   (!between_points && collision.first >= EPSILON))
 			{
@@ -313,7 +271,6 @@ Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = fal
 
 	result.hit_point = vec3(root->trans * vec4(result.hit_point, 1.0f));
 	result.t = length(result.hit_point - orig_eye); // TODO Verify
-	// if(result.normal != vec3(0,0,0))pvec(result.normal);
 	result.normal = root->normal_invtrans * result.normal; //[n][m]
 
 	return result;
@@ -361,7 +318,6 @@ inline vec3 specular_color(vec3 v,
 								// TODO Why does no max here create concentric circle pattern?
 								pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light_color;
 		}
-
 		specular_light *= 1.0f/reflection_rays;
 	}
 	else
@@ -370,7 +326,6 @@ inline vec3 specular_color(vec3 v,
 							// TODO Why does no max here create concentric circle pattern?
 							pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light_color;
 	}
-
 
 	return specular_light;
 }
@@ -384,9 +339,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 			  bool inside_solid)
 {
 	// auto start_time = std::chrono::high_resolution_clock::now();
-
-	// cout << "hi"  << endl;
-
 	vec3 result(0,0,0);
 	vec3 diffuse_light(0,0,0);
 	vec3 specular_light(0,0,0);
@@ -394,14 +346,8 @@ vec3 rayColor(vec3 eye, vec3 ray,
 	vec3 transmitted_light(0,0,0);
 
 	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(root);
-	// cout << "hey" << endl;
-	
-	// cout << root << endl;
 
 	auto collision = collide(eye, ray, root);// geometryNode->collide(eye, ray);
-
-	// cout << "bye"  << endl;
-
 	collision.normal = normalize(collision.normal);
 
 	if(collision.object)
@@ -411,9 +357,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 		if(collision.object->m_primitive->is_light())
 		{
 			return static_cast<AreaLight *>(collision.object->m_primitive)->color;
-		} 
-
-		// cout << collision.object->m_name << endl;
+		}
 
 		vec3 collision_point = collision.hit_point; 
 		// vec3 collision_point = eye + normalize(ray-eye)*(collision.t);//*(1.0f-EPSILON);
@@ -427,16 +371,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 		result += kd*ambient;
 		
 		collision.normal = normalize(collision.normal); 
-
-		// pvec(normalize(eye - collision_point));
-		// pvec(normalize(collision.normal));
-
-		// if(angle(eye - collision_point, collision.normal) > M_PI/2)
-		// {
-		// 	cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" << endl;
-		// }
-
-		// cout << collision.t << endl;
 
 		vec3 v = normalize(ray - eye);
 
@@ -490,7 +424,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 			for(auto light: lights)
 			{
-				cnt1++;
 				auto light_collision = collide(collision_point, light->position, root, true);
 				float light_dist = length(light->position - collision_point);// light_collision.t;
 
@@ -499,7 +432,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 					float light_attenuation = 1.0f/(light->falloff[2]*light_dist*light_dist + 
 													light->falloff[1]*light_dist + 
 													light->falloff[0]);
-					// cout << length(collision.normal) << endl;
 
 					diffuse_light += light_attenuation*light->colour * 
 									std::max(0.0f, dot(collision.normal, normalize(light->position - collision_point))) *
@@ -507,16 +439,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 					vec3 v = normalize(eye-ray);
 					vec3 l = normalize(light->position - collision_point);
 					vec3 r = -l + 2*collision.normal*dot(l, collision.normal); // ggReflection
-					// vec3 v = normalize(eye - collision_point);
-					// diffuse_light += light_attenuation*light->colour * collision.object->m_material->ks() *
-					// 				 exp_n(r+v, collision.object->m_material->shininess());
-					// specular_light += light_attenuation*light->colour * collision.object->m_material->ks() * 
-					// 				 std::max(0.0f, dot(normalize(eye - collision_point), r));// exp_n(r+v, collision.object->m_material->shininess())
-
-					// if(max_hits - 1 == 0)
-					// {
-					// if(max_hits == 3)
-					// {
 					
 					float exponent = (1.0f/(PHONG_EXPONENT+1))*REFLECTIVE_GLOSSINESS;
 
@@ -550,16 +472,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 											// TODO Why does no max here create concentric circle pattern?
 											pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())*light_attenuation*light->colour;
 					}
-
-					// }
-					// else
-					// {
-
-					
-					// cout << dot(r,v) << endl;
-					// pvec(light_attenuation*light->colour * collision.object->m_material->ks());
-					// cout << std::max(0.0f, dot(normalize(eye - collision_point), r))<< endl;
-
 				}	
 			}
 			
@@ -567,7 +479,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 			{
 				
 				vec3 r = (v - 2*collision.normal*dot(v, collision.normal)); // ggReflection
-				// cout << "hi"  << endl;
 				vec3 new_collision_point = collision_point + EPSILON * collision.normal;
 				// TODO Causes artifacting if objects are too small???
 
@@ -613,7 +524,6 @@ vec3 rayColor(vec3 eye, vec3 ray,
 		}
 
 		float TRANSMISSION_COEFFICIENT = collision.object->m_material->tc(); //0.4;
-		// cout << TRANSMISSION_COEFFICIENT << endl;
 
 		if(TRANSMISSION_COEFFICIENT > 0.01f && max_hits > 0)
 		{
@@ -690,5 +600,3 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 	return result;
 }
-
-
