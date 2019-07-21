@@ -39,7 +39,9 @@ SceneNode::SceneNode(const SceneNode & other)
 	  invtrans(other.invtrans)
 {
 	for(SceneNode * child : other.children) {
-		this->children.push_front(new SceneNode(*child));
+		SceneNode* new_child = new SceneNode(*child);
+		new_child->parent = this;
+		this->children.push_front(new_child);
 	}
 }
 
@@ -68,11 +70,13 @@ const glm::mat4& SceneNode::get_inverse() const {
 
 //---------------------------------------------------------------------------------------
 void SceneNode::add_child(SceneNode* child) {
+	child->parent = this;
 	children.push_back(child);
 }
 
 //---------------------------------------------------------------------------------------
 void SceneNode::remove_child(SceneNode* child) {
+	child->parent = nullptr;
 	children.remove(child);
 }
 
@@ -131,6 +135,16 @@ void SceneNode::translate(const glm::vec3& amount) {
 	invtrans = invtrans * glm::translate(-amount);
 	// invtrans = inverse(trans);
 	reset_normal_transform();
+}
+
+void SceneNode::calc_world_transforms()
+{
+	if(!parent) world_trans = trans;
+	else world_trans = parent->world_trans*trans;
+	
+	for(SceneNode * child : children) {
+		child->calc_world_transforms();
+	}
 }
 
 

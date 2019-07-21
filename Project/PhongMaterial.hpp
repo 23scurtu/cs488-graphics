@@ -14,7 +14,7 @@ class PhongMaterial : public Material {
 public:
   PhongMaterial(const glm::vec3& kd, const glm::vec3& ks, double shininess, double tc = 0.0f, double n_i = 1.0f, double r_g = 0.0f, double t_g = 0.0f);
   virtual ~PhongMaterial();
-  glm::vec3 color(){ return m_kd; }; // TODO Temporary
+  virtual glm::vec3 color(glm::vec3 *pos = nullptr){ return m_kd; }; // TODO Temporary
   glm::vec3 ks(){ return m_ks; }
   float shininess(){ return m_shininess; }
   float tc(){ return m_tc; }

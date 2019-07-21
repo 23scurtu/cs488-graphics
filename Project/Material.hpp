@@ -6,7 +6,7 @@
 class Material {
 public:
   virtual ~Material();
-  virtual glm::vec3 color() = 0;
+  virtual glm::vec3 color(glm::vec3 *pos = nullptr) = 0;
   virtual glm::vec3 ks() = 0;
   virtual float shininess() = 0;
   virtual float tc() = 0;

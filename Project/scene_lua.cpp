@@ -56,6 +56,8 @@
 #include "Material.hpp"
 #include "PhongMaterial.hpp"
 #include "A4.hpp"
+#include "AreaLight.hpp"
+#include "PerlinNoiseMaterial.hpp"
 
 typedef std::map<std::string,Mesh*> MeshMap;
 static MeshMap mesh_map;
@@ -342,6 +344,35 @@ int gr_light_cmd(lua_State* L)
   return 1;
 }
 
+// Create an AreaLight node
+extern "C"
+int gr_area_light_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+  
+  const char* name = luaL_checkstring(L, 1);
+
+  AreaLight* light = new AreaLight();
+
+  double col[3];
+  get_tuple(L, 2, col, 3);
+  get_tuple(L, 3, light->falloff, 3);
+
+  light->color = glm::vec3(col[0], col[1], col[2]);
+
+  GeometryNode* node = new GeometryNode( name, light );
+  light->setNode(node);
+  data->node = node;
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
 // Render a scene
 extern "C"
 int gr_render_cmd(lua_State* L)
@@ -441,6 +472,45 @@ int gr_cmaterial_cmd(lua_State* L)
                                      n_i,
                                      reflective_glossiness,
                                      transmissive_glossiness);
+
+  luaL_newmetatable(L, "gr.material");
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Create a Perlin Material
+extern "C"
+int gr_perlin_material_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
+  data->material = 0;
+
+  int grid_size = luaL_checkinteger(L, 1);
+  float grid_scale[3];
+  get_tuple(L, 2, grid_scale, 3);
+  
+  double kd[3], ks[3];
+  get_tuple(L, 3, kd, 3);
+  get_tuple(L, 4, ks, 3);
+
+  double shininess = luaL_checknumber(L, 5);
+  double transmission_coefficient = luaL_checknumber(L, 6);
+  double n_i = luaL_checknumber(L, 7);
+  double reflective_glossiness = luaL_checknumber(L, 8);
+  double transmissive_glossiness = luaL_checknumber(L, 9);
+
+  data->material = new PerlinNoiseMaterial(grid_size,
+                                           glm::vec3(grid_scale[0], grid_scale[1], grid_scale[2]),
+                                           glm::vec3(kd[0], kd[1], kd[2]),
+                                           glm::vec3(ks[0], ks[1], ks[2]),
+                                           shininess,
+                                           transmission_coefficient,
+                                           n_i,
+                                           reflective_glossiness,
+                                           transmissive_glossiness);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -592,6 +662,7 @@ static const luaL_Reg grlib_functions[] = {
   {"joint", gr_joint_cmd},
   {"material", gr_material_cmd},
   {"cmaterial", gr_cmaterial_cmd},
+  {"perlin_material", gr_perlin_material_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
   {"nh_sphere", gr_nh_sphere_cmd},
@@ -599,6 +670,7 @@ static const luaL_Reg grlib_functions[] = {
   {"mesh", gr_mesh_cmd},
   {"cmesh", gr_cmesh_cmd},
   {"light", gr_light_cmd},
+  {"area_light", gr_area_light_cmd},
   {"render", gr_render_cmd},
   {0, 0}
 };

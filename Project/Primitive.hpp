@@ -23,6 +23,9 @@ public:
   virtual bool normal_mapped(){ return m_normal_mapped; }
   virtual glm::vec3 getLastHitColor(){ return glm::vec3(0,0,0); }
   virtual glm::vec3 getLastHitNormal(glm::vec3 *interpolated_normal = nullptr){ return glm::vec3(0,0,0); };
+
+  virtual bool is_light(){ return false; }
+  virtual glm::vec3 surfacePoint(){ return glm::vec3(0,0,0); }
 };
 
 class Sphere : public Primitive {
