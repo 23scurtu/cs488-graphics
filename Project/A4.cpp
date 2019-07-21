@@ -18,13 +18,23 @@
 using namespace std;
 using namespace glm;
 
+struct SceneState
+{
+	const glm::vec3 & ambient;
+	const std::list<Light *> & lights;
+	const vector<AreaLight*> & area_lights;
+	const SceneNode * root;
+
+	SceneState(const glm::vec3 & ambient, 
+			   const std::list<Light *> & lights, 
+			   const vector<AreaLight*> & area_lights, 
+			   const SceneNode * root): ambient{ambient}, lights{lights}, area_lights{area_lights}, root{root} {}
+};
+
 vec3 rayColor(vec3 eye, 
 			  vec3 ray, 
-			  const glm::vec3 & ambient, 
-			  const std::list<Light *> & lights,
-			  const vector<AreaLight*> & area_lights,
-			  SceneNode * root,
-			  vec3 background = vec3(0.8,0.8,0.8),
+			  SceneState* s,
+			  vec3 background,
 			  size_t max_hits = 4, 
 			  bool inside_solid = false);
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
@@ -137,6 +147,8 @@ void A4_Render(
 
 	std::vector<std::vector<vec3>> colors(image.height(), std::vector<vec3>(image.width(), vec3(0,0,0)));
 
+	SceneState state(ambient, lights, area_lights, root);
+
 	for(int y = 0; y != image.height(); y++)
 	{
 		for(int x = 0; x != image.width(); x++)
@@ -160,7 +172,7 @@ void A4_Render(
 						ray = normalize(ray);
 						ray += eye;
 
-						color += rayColor(eye, ray, ambient, lights, area_lights, root, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+						color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
 					}
 				}
 
@@ -181,7 +193,7 @@ void A4_Render(
 				ray += eye;
 
 				// 1.18*10^-5 s
-				colors[y][x] = rayColor(eye, ray, ambient, lights, area_lights, root, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+				colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
 			}
 			
 		}
@@ -223,7 +235,7 @@ struct Collision
 	vec3 hit_point;
 	vec3 local_hit_point;
 	vec3 normal;
-	GeometryNode* object = nullptr;
+	const GeometryNode* object = nullptr;
 
 	Collision() = default;
 	Collision(float t, vec3 normal, GeometryNode* object): t{t}, normal{normal}, object{object} {}
@@ -231,7 +243,7 @@ struct Collision
 
 const float EPSILON = 0.0002;
 
-Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = false)
+Collision collide(vec3 eye, vec3 ray, const SceneNode *root, bool between_points = false)
 {
 	vec3 orig_eye = eye;
 	vec3 orig_ray = ray;
@@ -243,7 +255,7 @@ Collision collide(vec3 eye, vec3 ray, SceneNode *root, bool between_points = fal
 
 	if(root->m_nodeType == NodeType::GeometryNode)
 	{
-		GeometryNode * geometryNode = static_cast<GeometryNode *>(root);
+		const GeometryNode * geometryNode = static_cast<const GeometryNode *>(root);
 
 		auto collision = geometryNode->collide(eye, ray);
 		// cout << collision << endl;
@@ -330,11 +342,8 @@ inline vec3 specular_color(vec3 v,
 	return specular_light;
 }
 
-vec3 rayColor(vec3 eye, vec3 ray, 
-			  const glm::vec3 & ambient, 
-			  const std::list<Light *> & lights, 
-			  const vector<AreaLight*> & area_lights,
-			  SceneNode * root, vec3 background, 
+vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
+			  vec3 background,
 			  size_t max_hits,
 			  bool inside_solid)
 {
@@ -345,9 +354,9 @@ vec3 rayColor(vec3 eye, vec3 ray,
 	vec3 reflected_light(0,0,0);
 	vec3 transmitted_light(0,0,0);
 
-	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(root);
+	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(s->root);
 
-	auto collision = collide(eye, ray, root);// geometryNode->collide(eye, ray);
+	auto collision = collide(eye, ray, s->root);// geometryNode->collide(eye, ray);
 	collision.normal = normalize(collision.normal);
 
 	if(collision.object)
@@ -368,7 +377,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 			kd = collision.object->m_primitive->getLastHitColor();
 		// TODO Uncomment for texture
 
-		result += kd*ambient;
+		result += kd*s->ambient;
 		
 		collision.normal = normalize(collision.normal); 
 
@@ -383,7 +392,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 		if(!inside_solid)
 		{
-			for(AreaLight* area_light: area_lights)
+			for(AreaLight* area_light: s->area_lights)
 			{
 				// TODO Make lua param to set samples
 				const int samples = 10;
@@ -397,7 +406,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 				{
 					vec3 position = area_light->surfacePoint();
 
-					auto light_collision = collide(collision_point, position, root, true);
+					auto light_collision = collide(collision_point, position, s->root, true);
 					float light_dist = length(position - collision_point);
 
 					if(!(light_collision.object))
@@ -409,7 +418,7 @@ vec3 rayColor(vec3 eye, vec3 ray,
 						area_diffuse += light_attenuation*area_light->color * 
 										std::max(0.0f, dot(collision.normal, normalize(position - collision_point))) *
 										kd;
-										
+
 						vec3 v = normalize(eye-ray);
 						area_specular += specular_color(v, position, area_light->color, collision_point, collision, 
 														light_attenuation, PHONG_EXPONENT, REFLECTIVE_GLOSSINESS, reflection_rays);
@@ -423,9 +432,9 @@ vec3 rayColor(vec3 eye, vec3 ray,
 				specular_light += area_specular;
 			}
 
-			for(auto light: lights)
+			for(auto light: s->lights)
 			{
-				auto light_collision = collide(collision_point, light->position, root, true);
+				auto light_collision = collide(collision_point, light->position, s->root, true);
 				float light_dist = length(light->position - collision_point);// light_collision.t;
 
 				if(!(light_collision.object))
@@ -470,22 +479,17 @@ vec3 rayColor(vec3 eye, vec3 ray,
 						// If pertubation causes refraction, skip.
 						if(dot(r, collision.normal) <= 0.001) {i--; continue;}
 
-						vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, area_lights, root, vec3(0,0,0), max_hits-1);
+						vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, s, vec3(0,0,0), max_hits-1);
 						// If bounce and miss do not add background color! ^
 
-						reflected_light += //(1.0f/lights.size())*
-											collision.object->m_material->ks() * 
-											// 0.6*
-											// // TODO Why does no max here create concentric circle pattern?
-											// pow(std::max(0.0f, dot(r,v)), collision.object->m_material->shininess())* //light_attenuation*light->colour *
-											reflected_color;
+						reflected_light += collision.object->m_material->ks() * reflected_color;
 					}
 
 					reflected_light *= 1.0f/reflection_rays;
 				}
 				else // TODO Threshold this
 				{
-					vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, ambient, lights, area_lights, root, vec3(0,0,0), max_hits-1);
+					vec3 reflected_color = rayColor(new_collision_point, new_collision_point + r, s, vec3(0,0,0), max_hits-1);
 					reflected_light += collision.object->m_material->ks() * reflected_color;
 				}
 				
@@ -533,34 +537,31 @@ vec3 rayColor(vec3 eye, vec3 ray,
 
 					// Transmit light
 					transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
-										rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, area_lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+										rayColor(new_collision_point, new_collision_point + transmitted_ray, s, vec3(0,0,0), max_hits - 1, !inside_solid);
 				}
 
 				// transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
 				// 						rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
 
 				// transmitted_light *= (1.0f/(transmission_rays + 1));
+				// Have at least one transmitted ray straight through?
+
 				transmitted_light *= 1.0f/transmission_rays;
 			}
 			else
 			{
 				transmitted_light += TRANSMISSION_COEFFICIENT* (vec3(1,1,1)-collision.object->m_material->ks()) *
-										rayColor(new_collision_point, new_collision_point + transmitted_ray, ambient, lights, area_lights, root, vec3(0,0,0), max_hits - 1, !inside_solid);
+									 rayColor(new_collision_point, new_collision_point + transmitted_ray, s, vec3(0,0,0), max_hits - 1, !inside_solid);
 			}
 			
 		}
 
-		result += diffuse_light;
-		result += specular_light;
-		result += reflected_light;	
-
+		result += diffuse_light + specular_light + reflected_light;	
 		result *= (1-TRANSMISSION_COEFFICIENT);
 		result += transmitted_light;
 	}
-	else
-	{
-		result = background;
-	}
+	else result = background;
+	
 
 	// auto finish_time = std::chrono::high_resolution_clock::now();
 	// std::chrono::duration<double> elapsed = finish_time - start_time;
