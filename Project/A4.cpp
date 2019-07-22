@@ -13,6 +13,8 @@
 #include "uniform.hpp"
 #include "AreaLight.hpp"
 #include "BVH.hpp"
+#include <thread>
+#include <utility>
 
 #include "A4.hpp"
 
@@ -46,7 +48,10 @@ int cnt1 = 0;
 int cnt2 = 0;
 
 bool ANTI_ALIASING = false;			   	// Enable regular sampling anti aliasing.
-const int ANTI_ALIASING_DIVISIONS = 3;	// Number of subdivisions to make at each pixel.
+const int ANTI_ALIASING_DIVISIONS = 2;	// Number of subdivisions to make at each pixel.
+
+// Number of cores used in first*second
+pair<size_t, size_t> multithreading_kernel(4,2);
 
 const int subdivisions = ANTI_ALIASING_DIVISIONS;
 
@@ -163,22 +168,49 @@ void A4_Render(
 
 	SceneState state(ambient, lights, area_lights, root, &bvh);
 
-	for(int y = 0; y != image.height(); y++)
-	{
-		for(int x = 0; x != image.width(); x++)
+	auto RenderThread = [&](size_t c_h, size_t c_w, size_t t_i, size_t t_j){
+		if(ANTI_ALIASING)
 		{
-			if(ANTI_ALIASING)
+			for(int y = t_i; y < h; y+=c_h)
 			{
-				vec3 color(0,0,0);
-
-				for(int l = 0; l != subdivisions; l++)
+				for(int x = t_j; x < w; x+=c_w)
 				{
-					for(int k = 0; k != subdivisions; k++)
+					vec3 color(0,0,0);
+
+					for(int l = 0; l != subdivisions; l++)
 					{
+						for(int k = 0; k != subdivisions; k++)
+						{
+							vec3 ray;// = rays[y][x];
+
+							ray = vec3(x + float(2*k+1)/float(2*subdivisions), y + float(2*l+1)/float(2*subdivisions), 0);
+							ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
+							// TODO Check if scales
+							//TODO Should be minus?
+							ray *= vec3(-window_h/nx, -window_h/ny, 1);
+							ray = camera_rotation * ray;
+							ray = normalize(ray);
+							ray += eye;
+
+							color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+						}
+					}
+
+					colors[y][x] = (1.0f/(subdivisions*subdivisions))* color;
+				}
+			}
+		}
+		else
+		{
+			for(int y = t_i; y < h; y+=c_h)
+			{
+				for(int x = t_j; x < w; x+=c_w)
+				{
 						vec3 ray;// = rays[y][x];
 
-						ray = vec3(x + float(2*k+1)/float(2*subdivisions), y + float(2*l+1)/float(2*subdivisions), 0);
-						ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
+						// 1.715*10^-6
+						ray = vec3(x, y, 0);
+						ray += vec3(-float(h)/2,-float(image.height())/2,d);
 						// TODO Check if scales
 						//TODO Should be minus?
 						ray *= vec3(-window_h/nx, -window_h/ny, 1);
@@ -186,36 +218,83 @@ void A4_Render(
 						ray = normalize(ray);
 						ray += eye;
 
-						color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
-					}
+						// 1.18*10^-5 s
+						colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
 				}
-
-				colors[y][x] = (1.0f/(subdivisions*subdivisions))* color;
 			}
-			else
-			{
-				vec3 ray;// = rays[y][x];
-
-				// 1.715*10^-6
-				ray = vec3(x, y, 0);
-				ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
-				// TODO Check if scales
-				//TODO Should be minus?
-				ray *= vec3(-window_h/nx, -window_h/ny, 1);
-				ray = camera_rotation * ray;
-				ray = normalize(ray);
-				ray += eye;
-
-				// 1.18*10^-5 s
-				colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
-			}
-			
 		}
-	}
+	};
+
+	auto RenderMultithread = [&](size_t c_h, size_t c_w)
+	{
+		vector<thread*> threads;
+
+		for(size_t j = 0; j < c_h; j++)
+		{
+			for(size_t i = 0; i < c_w; i++)
+			{
+				threads.push_back(std::move(new thread(RenderThread, c_h, c_w, j, i)));
+			}
+		}
+
+		for(auto thread: threads) thread->join();
+	};
+
+	RenderMultithread(multithreading_kernel.first, multithreading_kernel.second);
+
+	// COMMENT ABOVE LINE AND UNCOMMENT BELOW FOR SINGLETHREADING CODE
+	// for(int y = 0; y != image.height(); y++)
+	// {
+	// 	for(int x = 0; x != image.width(); x++)
+	// 	{
+	// 		if(ANTI_ALIASING)
+	// 		{
+	// 			vec3 color(0,0,0);
+
+	// 			for(int l = 0; l != subdivisions; l++)
+	// 			{
+	// 				for(int k = 0; k != subdivisions; k++)
+	// 				{
+	// 					vec3 ray;// = rays[y][x];
+
+	// 					ray = vec3(x + float(2*k+1)/float(2*subdivisions), y + float(2*l+1)/float(2*subdivisions), 0);
+	// 					ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
+	// 					// TODO Check if scales
+	// 					//TODO Should be minus?
+	// 					ray *= vec3(-window_h/nx, -window_h/ny, 1);
+	// 					ray = camera_rotation * ray;
+	// 					ray = normalize(ray);
+	// 					ray += eye;
+
+	// 					color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+	// 				}
+	// 			}
+
+	// 			colors[y][x] = (1.0f/(subdivisions*subdivisions))* color;
+	// 		}
+	// 		else
+	// 		{
+	// 			vec3 ray;// = rays[y][x];
+
+	// 			// 1.715*10^-6
+	// 			ray = vec3(x, y, 0);
+	// 			ray += vec3(-float(image.height())/2,-float(image.height())/2,d);
+	// 			// TODO Check if scales
+	// 			//TODO Should be minus?
+	// 			ray *= vec3(-window_h/nx, -window_h/ny, 1);
+	// 			ray = camera_rotation * ray;
+	// 			ray = normalize(ray);
+	// 			ray += eye;
+
+	// 			// 1.18*10^-5 s
+	// 			colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+	// 		}
+	// 	}
+	// }
 
 	float max_intensity = 1.0f;
 	
-	// Normalize color - desaturates
+	// //Normalize color - desaturates
 	// for(int y = 0; y != image.height(); y++)
 	// {
 	// 	for(int x = 0; x != image.width(); x++)
@@ -466,7 +545,7 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 			for(AreaLight* area_light: s->area_lights)
 			{
 				// TODO Make lua param to set samples
-				const int samples = 10;
+				const int samples = 2;
 				const float sample_inv = 1.0f/float(samples);
 
 				vec3 area_diffuse(0,0,0);
