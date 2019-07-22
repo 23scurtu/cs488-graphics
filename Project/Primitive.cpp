@@ -5,9 +5,18 @@
 #include "A4.hpp"
 
 const float EPSILON = 0.01;//0.01;
+const float BOUNDING_EPSILON = 0.0001f;
 
 Primitive::~Primitive()
 {
+}
+
+Sphere::Sphere()
+{
+    const float E = BOUNDING_EPSILON;
+    aabb = AABB(vec3(-1-E,-1-E,-1-E), 
+                vec3(1+E,1+E,1+E));
+    m_type = SPHERE;
 }
 
 Sphere::~Sphere()
@@ -73,11 +82,19 @@ NonhierBox::NonhierBox(const glm::vec3& pos, double size)
         p *= size;
         p += pos;
     }
+
+    const float E = BOUNDING_EPSILON;
+    aabb = AABB(vec3(pos.x-E, pos.y-E, pos.z-E), 
+                vec3(pos.x+size+E, pos.y+size+E, pos.z+size+E));
+    m_type = NONHIER_BOX;
 }
 
 Cube::Cube(): mesh(new Mesh("cube.obj"))
     //TODO Change to not be assets folder
 {
+    const float E = BOUNDING_EPSILON;
+    aabb = AABB(vec3(-E,-E,-E), vec3(1+E,1+E,1+E));
+    m_type = CUBE;
 }
 
 std::pair<float, glm::vec3> Cube::collide(glm::vec3 eye, glm::vec3 ray)
@@ -92,6 +109,15 @@ std::pair<float, glm::vec3> NonhierBox::collide(glm::vec3 eye, glm::vec3 ray)
     auto result = mesh->collide(eye, ray);
     // std::cout << result.first << std::endl;
     return result;
+}
+
+NonhierSphere::NonhierSphere(const glm::vec3& pos, double radius)
+    : m_pos(pos), m_radius(radius)
+{
+    const float E = BOUNDING_EPSILON;
+    aabb = AABB(vec3(pos.x-radius-E, pos.y-radius-E, pos.z-radius-E), 
+                vec3(pos.x+radius+E, pos.y+radius+E, pos.z+radius+E));
+    m_type = NONHIER_SPHERE;
 }
 
 NonhierSphere::~NonhierSphere()

@@ -41,6 +41,8 @@ public:
     void translate(const glm::vec3& amount);
 
     void calc_world_transforms();
+    void calc_world_inv_transforms();
+    void calc_world_normal_inv_transforms();
 
 	friend std::ostream & operator << (std::ostream & os, const SceneNode & node);
 
@@ -51,7 +53,10 @@ public:
     glm::mat3 normal_trans;
     glm::mat3 normal_invtrans;
 
+    glm::mat3 world_normal_invtrans;
+
     glm::mat4 world_trans;
+    glm::mat4 world_inv_trans;
     
     std::list<SceneNode*> children;
     SceneNode* parent = nullptr;

@@ -12,6 +12,7 @@
 #include <chrono>
 #include "uniform.hpp"
 #include "AreaLight.hpp"
+#include "BVH.hpp"
 
 #include "A4.hpp"
 
@@ -24,11 +25,13 @@ struct SceneState
 	const std::list<Light *> & lights;
 	const vector<AreaLight*> & area_lights;
 	const SceneNode * root;
+	const BVH * bvh;
 
 	SceneState(const glm::vec3 & ambient, 
 			   const std::list<Light *> & lights, 
 			   const vector<AreaLight*> & area_lights, 
-			   const SceneNode * root): ambient{ambient}, lights{lights}, area_lights{area_lights}, root{root} {}
+			   const SceneNode * root,
+			   const BVH * bvh): ambient{ambient}, lights{lights}, area_lights{area_lights}, root{root}, bvh{bvh} {}
 };
 
 vec3 rayColor(vec3 eye, 
@@ -47,6 +50,9 @@ const int ANTI_ALIASING_DIVISIONS = 3;	// Number of subdivisions to make at each
 
 const int subdivisions = ANTI_ALIASING_DIVISIONS;
 
+#define BVH_COLLISION
+// #define RENDER_BVH
+
 vec3 background(float x, float y)
 {
 	// y = -y;
@@ -63,6 +69,7 @@ vec3 background(float x, float y)
 	// if(y < -0.1) return (sqrt(abs(y+0.1)*0.5))*bottom_color+(1-sqrt(abs(y+0.1)*0.5))*middle_color;
 
 	// return middle_color;
+	// return vec3(0.65,0.825,1);
 	return vec3(0,0,0);
 }
 
@@ -99,6 +106,13 @@ void A4_Render(
 	// Calculate all scene graph world transforms before rendering. 
 	// TODO Do outside of rendering function
 	root->calc_world_transforms();
+
+	// BVH Specific preproccessing
+	root->calc_world_inv_transforms();
+	root->calc_world_normal_inv_transforms();
+
+	BVH bvh(root);
+
 	vector<AreaLight*> area_lights;
 
 	get_lights(root, area_lights);
@@ -147,7 +161,7 @@ void A4_Render(
 
 	std::vector<std::vector<vec3>> colors(image.height(), std::vector<vec3>(image.width(), vec3(0,0,0)));
 
-	SceneState state(ambient, lights, area_lights, root);
+	SceneState state(ambient, lights, area_lights, root, &bvh);
 
 	for(int y = 0; y != image.height(); y++)
 	{
@@ -243,6 +257,7 @@ struct Collision
 
 const float EPSILON = 0.0002;
 
+// Calculate intersection without any optimization
 Collision collide(vec3 eye, vec3 ray, const SceneNode *root, bool between_points = false)
 {
 	vec3 orig_eye = eye;
@@ -284,6 +299,56 @@ Collision collide(vec3 eye, vec3 ray, const SceneNode *root, bool between_points
 	result.hit_point = vec3(root->trans * vec4(result.hit_point, 1.0f));
 	result.t = length(result.hit_point - orig_eye); // TODO Verify
 	result.normal = root->normal_invtrans * result.normal; //[n][m]
+
+	return result;
+}
+
+// Calculate intersection using the BVH hierarchy
+Collision collide(vec3 eye, vec3 ray, SceneState * s, bool between_points = false)
+{
+	vector<GeometryNode*> candidates = s->bvh->candidate_geometry_nodes(eye, ray);
+	// cout << candidates.size() << endl;
+	
+	Collision result;
+
+	for(GeometryNode* c: candidates)
+	{
+		vec3 local_eye = vec3(c->world_inv_trans * vec4(eye,1.0f));
+		vec3 local_ray = vec3(c->world_inv_trans * vec4(ray,1.0f));
+
+		auto collision = c->collide(local_eye, local_ray);
+		
+		if(collision.first != -1)
+		{
+			if(((between_points && collision.first <= length(local_ray-local_eye) && collision.first >= EPSILON) || 
+				(!between_points && collision.first >= EPSILON)))
+				// If within the bounds epsilon and ray/inf and closer than previous collisions
+			{			
+				Collision c_collision;
+
+				c_collision.t = collision.first;
+				c_collision.hit_point = local_eye + normalize(local_ray-local_eye)*(collision.first);
+				c_collision.local_hit_point = c_collision.hit_point;
+
+				c_collision.object = c;
+				c_collision.normal = collision.second;
+
+				// Bring back to global coords!
+
+				c_collision.hit_point = vec3(c->world_trans * vec4(c_collision.hit_point, 1.0f));
+				c_collision.t = length(c_collision.hit_point - eye); // TODO Verify
+
+				// TODO Move more under if statement!
+				if(c_collision.object && ((!result.object) || c_collision.t < result.t)) 
+				{
+					c_collision.normal = c->world_normal_invtrans * c_collision.normal; //[n][m]
+					result = c_collision;
+				}
+
+
+			}
+		}
+	}
 
 	return result;
 }
@@ -356,7 +421,13 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 
 	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(s->root);
 
+	#ifndef BVH_COLLISION
 	auto collision = collide(eye, ray, s->root);// geometryNode->collide(eye, ray);
+	#endif
+	#ifdef BVH_COLLISION
+	auto collision = collide(eye, ray, s);
+	#endif
+	
 	collision.normal = normalize(collision.normal);
 
 	if(collision.object)
@@ -406,7 +477,14 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 				{
 					vec3 position = area_light->surfacePoint();
 
+					#ifndef BVH_COLLISION
 					auto light_collision = collide(collision_point, position, s->root, true);
+					#endif
+
+					#ifdef BVH_COLLISION
+					auto light_collision = collide(collision_point, position, s, true);
+					#endif
+
 					float light_dist = length(position - collision_point);
 
 					if(!(light_collision.object))
@@ -434,7 +512,13 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 
 			for(auto light: s->lights)
 			{
+				#ifndef BVH_COLLISION
 				auto light_collision = collide(collision_point, light->position, s->root, true);
+				#endif
+
+				#ifdef BVH_COLLISION
+				auto light_collision = collide(collision_point, light->position, s, true);
+				#endif
 				float light_dist = length(light->position - collision_point);// light_collision.t;
 
 				if(!(light_collision.object))
@@ -452,7 +536,7 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 														light_attenuation, PHONG_EXPONENT, REFLECTIVE_GLOSSINESS, reflection_rays);
 				}	
 			}
-			
+
 			if(max_hits > 0)
 			{
 				
@@ -567,6 +651,16 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 	// std::chrono::duration<double> elapsed = finish_time - start_time;
 	// std::cout << "Elapsed time: " << elapsed.count() << " s\n";
 	// exit(0);
+
+
+	// Quick and dirty method of visualizing bounding boxes (will be slower due to recalculating candidate_geometry_nodes)
+	#ifdef RENDER_BVH
+	for(auto c: s->bvh->candidate_geometry_nodes(eye, ray))
+	{
+		AABB b = c->m_primitive->aabb.transform(c->world_trans);
+		result += vec3(1,0,0)*0.1f;
+	}
+	#endif
 
 	return result;
 }

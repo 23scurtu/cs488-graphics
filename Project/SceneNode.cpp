@@ -147,6 +147,25 @@ void SceneNode::calc_world_transforms()
 	}
 }
 
+void SceneNode::calc_world_inv_transforms()
+{
+	if(!parent) world_inv_trans = invtrans;
+	else world_inv_trans = invtrans*parent->world_inv_trans;
+	
+	for(SceneNode * child : children) {
+		child->calc_world_inv_transforms();
+	}
+}
+
+void SceneNode::calc_world_normal_inv_transforms()
+{
+	if(!parent) world_normal_invtrans = normal_invtrans;
+	else world_normal_invtrans = parent->world_normal_invtrans*normal_invtrans;
+	
+	for(SceneNode * child : children) {
+		child->calc_world_normal_inv_transforms();
+	}
+}
 
 //---------------------------------------------------------------------------------------
 int SceneNode::totalSceneNodes() const {

@@ -225,6 +225,11 @@ Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 	if(m_texture_coords.empty()){ m_textured = false; m_normal_mapped = false; }
 	if(!m_normals.empty()) m_vertex_normals = true;
 	this->PHONG_SHADING = PHONG_SHADING;
+
+	const float E = 0.0001;
+    aabb = AABB(vec3(min.x-E, min.y-E, min.z-E), 
+                vec3(max.x+E, max.y+E, max.z+E));
+	m_type = MESH;
 }
 
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)

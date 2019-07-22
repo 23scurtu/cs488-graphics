@@ -40,6 +40,11 @@ vec3 AreaLight::surfacePoint()
     return vec3(uni(), uni(), 0);
 }
 
-// AreaLight::AreaLight()
-// {
-// }
+AreaLight::AreaLight()
+{
+    const float E = 0.0001f;
+    aabb = AABB(vec3(-E, -E, -E), 
+                vec3(1+E, 1+E, E));
+
+    m_type = AREA_LIGHT;
+}

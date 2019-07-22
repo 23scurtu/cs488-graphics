@@ -22,7 +22,7 @@ public:
     glm::vec3 color;
     double falloff[3];
 
-    AreaLight() = default;
+    AreaLight();
     void setNode(GeometryNode* node){ this->node = node; }
 
     virtual ~AreaLight() = default;
