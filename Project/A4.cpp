@@ -336,6 +336,11 @@ struct Collision
 
 const float EPSILON = 0.0002;
 
+// This epsilon varies in effectiveness depending on the general scale of the scene
+// To account for this, its later multiplied by intersection distance which roughly
+// generates the scale of the scene.
+const float DOUBLE_COLLISION_EPSILON = 0.0001f;
+
 // Calculate intersection without any optimization
 Collision collide(vec3 eye, vec3 ray, const SceneNode *root, bool between_points = false)
 {
@@ -346,6 +351,7 @@ Collision collide(vec3 eye, vec3 ray, const SceneNode *root, bool between_points
 	eye = vec3(root->invtrans * vec4(eye, 1.0f));
 
 	Collision result;
+	Collision second_result;
 
 	if(root->m_nodeType == NodeType::GeometryNode)
 	{
@@ -372,7 +378,19 @@ Collision collide(vec3 eye, vec3 ray, const SceneNode *root, bool between_points
 	for ( auto child: root->children)
 	{
 		auto child_result = collide(eye, ray, child, between_points);
-		if(child_result.object && (!result.object || child_result.t < result.t)) result = child_result;
+		
+		if(child_result.object) 
+		{
+			if((!result.object)) result = child_result;
+			else 
+			{
+				if(abs(result.t - child_result.t) < DOUBLE_COLLISION_EPSILON*result.t)
+					second_result = result;
+
+				if(child_result.t < result.t + DOUBLE_COLLISION_EPSILON*result.t)
+					result = child_result;
+			}
+		}
 	}
 
 	result.hit_point = vec3(root->trans * vec4(result.hit_point, 1.0f));
@@ -389,6 +407,7 @@ Collision collide(vec3 eye, vec3 ray, SceneState * s, bool between_points = fals
 	// cout << candidates.size() << endl;
 	
 	Collision result;
+	Collision second_result;
 
 	for(GeometryNode* c: candidates)
 	{
@@ -418,13 +437,23 @@ Collision collide(vec3 eye, vec3 ray, SceneState * s, bool between_points = fals
 				c_collision.t = length(c_collision.hit_point - eye); // TODO Verify
 
 				// TODO Move more under if statement!
-				if(c_collision.object && ((!result.object) || c_collision.t < result.t)) 
+				if(c_collision.object) 
 				{
-					c_collision.normal = c->world_normal_invtrans * c_collision.normal; //[n][m]
-					result = c_collision;
+					if((!result.object))
+					{
+						c_collision.normal = c->world_normal_invtrans * c_collision.normal; //[n][m]
+						result = c_collision;
+					}
+					else 
+					{
+						if(abs(result.t - c_collision.t) < DOUBLE_COLLISION_EPSILON*result.t) second_result = result;
+						if(c_collision.t < result.t + DOUBLE_COLLISION_EPSILON*result.t)
+						{
+							c_collision.normal = c->world_normal_invtrans * c_collision.normal; //[n][m]
+							result = c_collision;
+						}
+					}
 				}
-
-
 			}
 		}
 	}
