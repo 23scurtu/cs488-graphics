@@ -1,0 +1,5 @@
+premake4 gmake && make config=release && cd Assets && ./../Project simple.lua  && cd ..  && eog Assets/simple.png
+premake4 gmake && make config=release && cd Assets && ./../Project BVH_test.lua  && cd ..  && eog Assets/simple.png
+premake4 gmake && make config=release && cd Assets/demo_scenes/ && ./../../Project perlin_noise.lua  && cd ../..  && eog Assets/simple.png
+premake4 gmake && make config=release && cd Assets/demo_scenes/ && ./../../Project bvh2.lua  && cd ../..  && eog Assets/demo_scenes/images/output.png
+premake4 gmake && make config=release && cd Assets/demo_scenes/ && ./../../Project bvh2.lua  && cd ../..  && eog Assets/demo_scenes/images/output.png

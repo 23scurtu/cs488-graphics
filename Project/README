@@ -1,40 +1,50 @@
 ##Compilation
 
-When running sample.lua script, run from the A4 directory.
+As usual for the past assignments, in the root directory (Above "Project"), run "premake4 gmake" and then "make"
+to build all the required libraries.
+
+After this, go into Project and run "premake4 gmake && make config=release" there as well. This will build all the project code.
+
+From here you can do the following sequence of commands to cd into a desired .lua file directory, render it, then
+view the image:
+
+cd Assets/demo_scenes/ && ./../../Project bvh2.lua  && cd ../..  && eog Assets/demo_scenes/images/output.png
+
+In general, you can build and run any desired lua file with:
+
+cd Assets/demo_scenes/ && ./../../Project bvh2.lua  && cd ../..  && eog Assets/demo_scenes/images/output.png
+
+by replacing bvh2.lua with the desired lua script.
+
+Currently only the lua scripts in the Project/Assets/demo_scenes/ are working. The above command will work 
+for any lua file found there.
+
+All of the previous commands are assumed to be starting in the Project directory.
+The Project directory contains all of the content specific to this project, anything outside is either
+past assignments or shared libraries!
+
+I've included a file "sample_commands.txt" that provides example commands to start off with.
+
 No other changes from the default premake4/make combination and assumptions.
 Completed on lab computer gl23.student.cs
 
 ##Manual
 
-I used meshes to create cubes, because of this I chose to consider cubes as meshes and generate bounding spheres
-for them for additional performance.
+Stay tuned for final documentation detailing all features!
 
-I've excluded any mesh called 'plane' from having a bounding sphere since they take up the whole screen.
+Objectives:
 
-Note that my bounding spheres are a fair bit larger than the meshes themselves, this is becuase to generate them,
-I created a bounding box by finding the min and max values of all the verticies, then place a sphere around that
-bounding box. This means the spheres will be a bit large, but still vary with the meshes size.
+1:  Create a final scene
+2:  Texture Mapping
+3:  Bump (Normal) mapping
+4:  Reflection
+5:  Refraction
+6:  Glossy Transmission
+7:  Phong Shading
+8:  Perlin Noise for Solid Texture Generation
+9: Soft Shadows
+10:  Glossy Reflection
 
-In order to render the bounding volumes, uncomment the #define RENDER_BOUNDING_VOLUMES in Mesh.hpp.
+A4 extra objective:  Regular sampling anti aliasing
 
-For a demonstration of the performance of bounding spheres, the USE_BOUNDING_SPHERES macro can be defined in Mesh.hpp.
-When rendering sample.lua without ANTI_ALIASING, using bounding spheres takes 10.1932 s, and without bounding spheres 
-takes 14.5353 s.
-
-sample.lua is currently setup to render a 512x512 image but I did not have time to make the render since im writing this
-in the last few minutes. The screenshots of sample.lua that ive provided are 216x216 but provide a good demonstration of
-the antialiasing's effect.
-
-For my extention, I implemented regular sampling anti aliasing. This can be turned on and off using the ANTI_ALIASING
-variable in A4.cpp.
-
-For a demonstration of the anti aliasing, compare sample_noAA.png which has no anti aliasing with sample.png which does.
-
-My unique scene is a tastefully random combination of assorted shapes and transformations. There is a white light in the
-front left with quadratic decay, a white light in the middle of it all thats quite dim and has no decay, and a blue light 
-far above the middle of it all with no decay. I've included the dodeca.obg as my mesh, a squashed cube, a plane in the back
-to cast some shadows on and a bunch of spheres.  In the middle theres two red spheres, the one on the left is very 
-reflective while the one on the right is matte.
-
-No additional meaningful details or assumptions have been made that were not included in the specification.
 
