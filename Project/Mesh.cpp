@@ -229,7 +229,7 @@ Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 	if(!m_normals.empty()) m_vertex_normals = true;
 	this->PHONG_SHADING = PHONG_SHADING;
 
-	cout << m_textured << ", " << m_normal_mapped << endl;
+	// cout << m_textured << ", " << m_normal_mapped << endl;
 
 	const float E = 0.0001;
     aabb = AABB(vec3(min.x-E, min.y-E, min.z-E), 
