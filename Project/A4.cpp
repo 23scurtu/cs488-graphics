@@ -61,6 +61,7 @@ const int progress_prints = 250;
 atomic_int pixels_processed(0);
 
 #define BVH_COLLISION
+// Quick and dirty method of visualizing bounding boxes (will be slower due to recalculating candidate_geometry_nodes)
 // #define RENDER_BVH
 
 vec3 background(float x, float y)
@@ -782,11 +783,7 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 
 	// Quick and dirty method of visualizing bounding boxes (will be slower due to recalculating candidate_geometry_nodes)
 	#ifdef RENDER_BVH
-	for(auto c: s->bvh->candidate_geometry_nodes(eye, ray))
-	{
-		AABB b = c->m_primitive->aabb.transform(c->world_trans);
-		result += vec3(1,0,0)*0.1f;
-	}
+	result += vec3(1,0,0)*0.1f*s->bvh->candidate_geometry_nodes(eye, ray).size();
 	#endif
 
 	return result;
