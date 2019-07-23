@@ -202,6 +202,13 @@ void A4_Render(
 					}
 
 					colors[y][x] = (1.0f/(subdivisions*subdivisions))* color;
+
+					pixels_processed++;
+
+					if(pixels_processed % (w*h/progress_prints) == 0)
+					{
+						cout << float(pixels_processed)/float(w*h)*100 << "% completed." << endl;
+					}
 				}
 			}
 		}
