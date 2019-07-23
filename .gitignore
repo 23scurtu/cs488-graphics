@@ -8,6 +8,8 @@ shared/imgui**/Makefile
 build
 
 *.png
+*.jpg
+.vscode
 
 *.a
 *.o
