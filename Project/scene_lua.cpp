@@ -59,6 +59,15 @@
 #include "AreaLight.hpp"
 #include "PerlinNoiseMaterial.hpp"
 
+extern bool ANTI_ALIASING;			// Enable regular sampling anti aliasing.
+extern int ANTI_ALIASING_DIVISIONS;	// Number of subdivisions to make at each pixel.
+extern int SOFT_SHADOW_SAMPLES;		// Number of times to sample each area lights for soft shadows
+extern int GLOSSY_REFLECTION_RAYS;		// Number of cosine distrobution rays to generate for glossy reflections
+extern int GLOSSY_REFRACTION_RAYS;		// Number of cosine distrobution rays to generate for glossy transmission
+extern int MAX_HITS;					// Maximum recurstion depth when calculating each pixels color.
+extern pair<size_t, size_t> MULTITHREADING_KERNEL;    // first*second is the number of cores used. 
+extern int NUMBER_OF_PRINTS;
+
 typedef std::map<std::string,Mesh*> MeshMap;
 static MeshMap mesh_map;
 
@@ -371,6 +380,30 @@ int gr_area_light_cmd(lua_State* L)
   lua_setmetatable(L, -2);
 
   return 1;
+}
+
+// Set global constants for the render
+extern "C"
+int gr_render_options_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  MAX_HITS = luaL_checkinteger(L, 1);
+  luaL_checktype(L, 2, LUA_TBOOLEAN);
+  ANTI_ALIASING = lua_toboolean( L, 2 );
+  ANTI_ALIASING_DIVISIONS = luaL_checkinteger(L, 3);
+  SOFT_SHADOW_SAMPLES = luaL_checkinteger(L, 4);
+  GLOSSY_REFLECTION_RAYS = luaL_checkinteger(L, 5);
+  GLOSSY_REFRACTION_RAYS = luaL_checkinteger(L, 6);
+
+  int kernel_shape[2];
+  get_tuple(L, 7, &kernel_shape[0], 2);
+  MULTITHREADING_KERNEL.first = kernel_shape[0];
+  MULTITHREADING_KERNEL.second = kernel_shape[1];
+
+  NUMBER_OF_PRINTS = luaL_checkinteger(L, 8);
+
+	return 0;
 }
 
 // Render a scene
@@ -695,6 +728,7 @@ static const luaL_Reg grlib_node_methods[] = {
   {"rotate", gr_node_rotate_cmd},
   {"translate", gr_node_translate_cmd},
   {"render", gr_render_cmd},
+  {"render_options", gr_render_options_cmd},
   {0, 0}
 };
 

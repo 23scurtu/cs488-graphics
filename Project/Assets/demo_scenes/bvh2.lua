@@ -28,6 +28,8 @@ black_light = gr.light({20, 100, 0}, {1,1,1}, {2, 0, 0})
 
 size = 1024
 
+-- gr.render_options(5,true, 4, 3,2,2, {4,2}, 100)
+
 gr.render(scene_root, 'images/output.png', size, size,-- 512, 512, --256, 256, --1024, 1024,
 	  {5,5,80}, {0, 0, 0}, {0, 1, 0}, 50,
 	  {0.3, 0.3, 0.3}, {black_light})

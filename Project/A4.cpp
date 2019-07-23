@@ -45,19 +45,26 @@ vec3 rayColor(vec3 eye,
 			  bool inside_solid = false);
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
 
-int cnt1 = 0;
-int cnt2 = 0;
+/////////////////////////// Global Constants/////////////////////////////////////////////////
 
-bool ANTI_ALIASING = true;			   	// Enable regular sampling anti aliasing.
-const int ANTI_ALIASING_DIVISIONS = 4;	// Number of subdivisions to make at each pixel.
+bool ANTI_ALIASING = true;							// Enable regular sampling anti aliasing.
+int ANTI_ALIASING_DIVISIONS = 4;					// Number of subdivisions to make at each pixel.
+
+int SOFT_SHADOW_SAMPLES = 3;						// Number of times to sample each area lights for soft shadows
+int GLOSSY_REFLECTION_RAYS = 2;						// Number of cosine distrobution rays to generate for glossy reflections
+int GLOSSY_REFRACTION_RAYS = 2;						// Number of cosine distrobution rays to generate for glossy transmission
+int MAX_HITS = 5;									// Maximum recurstion depth when calculating each pixels color.
+pair<size_t, size_t> MULTITHREADING_KERNEL(4,2);    // first*second is the number of cores used. 
+int NUMBER_OF_PRINTS = 250;
+
+////////////////////////////////////////////////////////////////////////////////////////////
 
 // Number of cores used in first*second
-pair<size_t, size_t> multithreading_kernel(4,2);
+pair<size_t, size_t> &multithreading_kernel = MULTITHREADING_KERNEL;
 
-const int subdivisions = ANTI_ALIASING_DIVISIONS;
+int &subdivisions = ANTI_ALIASING_DIVISIONS;
 
-bool PRINT_PROGRESS = true;
-const int progress_prints = 250;
+int &progress_prints = NUMBER_OF_PRINTS;
 atomic_int pixels_processed(0);
 
 #define BVH_COLLISION
@@ -198,7 +205,7 @@ void A4_Render(
 							ray = normalize(ray);
 							ray += eye;
 
-							color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+							color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2), MAX_HITS);
 						}
 					}
 
@@ -232,7 +239,7 @@ void A4_Render(
 						ray += eye;
 
 						// 1.18*10^-5 s
-						colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+						colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2), MAX_HITS);
 						
 						pixels_processed++;
 
@@ -286,7 +293,7 @@ void A4_Render(
 	// 					ray = normalize(ray);
 	// 					ray += eye;
 
-	// 					color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+	// 					color += rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2), MAX_HITS);
 	// 				}
 	// 			}
 
@@ -307,7 +314,7 @@ void A4_Render(
 	// 			ray += eye;
 
 	// 			// 1.18*10^-5 s
-	// 			colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+	// 			colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2), MAX_HITS);
 	// 		}
 	// 	}
 	// }
@@ -586,15 +593,15 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 		float REFLECTIVE_GLOSSINESS = collision.object->m_material->r_g(); //0.1f;
 		float REFRACTIVE_GLOSSINESS = collision.object->m_material->t_g(); //0.003f; // TODO Debug black dot in middle!
 		
-		size_t reflection_rays = 2; // For glossy // TODO Causes exponential time increase
-		size_t transmission_rays = 2;
+		size_t reflection_rays = GLOSSY_REFLECTION_RAYS; // For glossy // TODO Causes exponential time increase
+		size_t transmission_rays = GLOSSY_REFRACTION_RAYS;
 
 		if(!inside_solid)
 		{
 			for(AreaLight* area_light: s->area_lights)
 			{
 				// TODO Make lua param to set samples
-				const int samples = 3;
+				const int samples = SOFT_SHADOW_SAMPLES;
 				const float sample_inv = 1.0f/float(samples);
 
 				vec3 area_diffuse(0,0,0);
