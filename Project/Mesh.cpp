@@ -379,7 +379,21 @@ glm::vec3 Mesh::getLastHitColor()
 	Texture * tex = m_materials[m_material_ids[ last_hit_index]].texture_map;
 	if(!tex) return vec3(0,0,0);
 
-	return tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height); 
+	vec3 c00 = tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height)    ;
+	vec3 c01 = tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height+1)  ;
+	vec3 c10 = tex->color(last_hit_uv_coords.x*tex->width+1, last_hit_uv_coords.y*tex->height)  ;
+	vec3 c11 = tex->color(last_hit_uv_coords.x*tex->width+1, last_hit_uv_coords.y*tex->height+1);
+
+	float u_p = last_hit_uv_coords.x*tex->width - int(last_hit_uv_coords.x*tex->width);
+	float v_p = last_hit_uv_coords.y*tex->height - int(last_hit_uv_coords.y*tex->height);
+
+	vec3 color =  c00*(1.0f-u_p)*(1.0f - v_p) +
+				  c01*(1.0f-u_p)*(v_p) +
+				  c10*(u_p)*(1.0f - v_p) + 
+				  c11*u_p*v_p;
+
+	return color;
+	// return tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height); 
 }
 
 //TODO Change name?
