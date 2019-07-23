@@ -5,10 +5,14 @@ Instanced_Example*/Makefile
 shared/glfw**/Makefile
 shared/imgui**/Makefile
 
+Previous_Assignments
+shared
+Project/A4
+
 build
 
-*.png
-*.jpg
+#*.png
+#*.jpg
 .vscode
 
 *.a
