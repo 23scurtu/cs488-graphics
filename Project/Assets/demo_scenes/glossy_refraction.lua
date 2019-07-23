@@ -1,4 +1,4 @@
-SHOW_EFFECT = true
+SHOW_EFFECT = false
 
 s = 1/8--1/8
 wall_r = 0
@@ -7,13 +7,13 @@ r = {wall_r,wall_r, wall_r}
 -- mat4 = gr.cmaterial({1, 1, 1}, {0.1, 0.1, 0.1}, 25, 0.8, 1.1, 0, 0)
 
 blue_transparent_mat = gr.cmaterial({0.3,0.3,0.7}, {0.7,0.7,0.3}, 100, 1, 1.4, 0, 0)
-clear_transparent_08_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 0.8, 0, 0.01)
-clear_transparent_13_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 1.3, 0, 0.0003)
+clear_transparent_08_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 0.9, 0, 0.0003 )
+clear_transparent_13_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 1.3, 0, 0.01)
 green_transparent_15_mat = gr.cmaterial({0.1,0.9,0.1}, {0.9,0.1,0.9}, 100, 1, 1.5, 0, 0.00003)
 clear_transparent_1_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 1.0, 0, 0.003)
 
 default_blue_transparent_mat = gr.cmaterial({0.3,0.3,0.7}, {0.7,0.7,0.3}, 100, 1, 1.4, 0, 0)
-default_clear_transparent_08_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 0.8, 0, 0)
+default_clear_transparent_08_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 0.9, 0, 0)
 default_clear_transparent_13_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 1.3, 0, 0)
 default_green_transparent_15_mat = gr.cmaterial({0.1,0.9,0.1}, {0.9,0.1,0.9}, 100, 1, 1.5, 0, 0)
 default_clear_transparent_1_mat = gr.cmaterial({0.9,0.9,0.9}, {0.1,0.1,0.1}, 100, 1, 1.0, 0, 0)
@@ -68,16 +68,16 @@ else
 	s3:set_material(default_clear_transparent_08_mat)
 end
 
-s6 = gr.sphere('s2', {0, 0, 0})
-s6:scale(s,s,s)
-s6:translate(0,75, 250)
-root:add_child(s6)
+-- s6 = gr.sphere('s2', {0, 0, 0})
+-- s6:scale(s,s,s)
+-- s6:translate(0,75, 250)
+-- root:add_child(s6)
 
-if SHOW_EFFECT then
-	s6:set_material(green_transparent_15_mat)
-else
-	s6:set_material(default_green_transparent_15_mat)
-end
+-- if SHOW_EFFECT then
+-- 	s6:set_material(green_transparent_15_mat)
+-- else
+-- 	s6:set_material(default_green_transparent_15_mat)
+-- end
 
 s4 = gr.sphere('s2', {0, 0, 0})
 s4:scale(s,s,s)
@@ -180,7 +180,7 @@ end
 
 white_light = gr.light({0, 190, 50}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
 -- white_light2 = gr.light({-90, 100, 400}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})
-size = 512
+size = 1024
 
 gr.render(root, 'images/output.png', size, size,-- 512, 512, --256, 256, --1024, 1024,
 	  {0, 100, 350}, {0, 100, 0}, {0, 1, 0}, 50,

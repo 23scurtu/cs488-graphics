@@ -1,4 +1,4 @@
-SHOW_EFFECT = true
+SHOW_EFFECT = false
 
 s = 1/8--1/8
 wall_r = 0
@@ -19,7 +19,7 @@ s1:set_material(mat1)
 s2 = gr.cube('s1', {0, 0, 0})
 s2:scale(50,50,50)
 s2:rotate('X', -90)
-s2:rotate('Y', 25)
+s2:rotate('Y', 20)
 s2:translate(50,0, 125)
 root:add_child(s2)
 s2:set_material(mat1)
@@ -49,7 +49,7 @@ end
 
 white_light = gr.light({0, 190, 50}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
 
-size = 512
+size = 1024
 
 gr.render(root, 'images/output.png', size, size,-- 512, 512, --256, 256, --1024, 1024,
 	  {0, 100, 350}, {0, 100, 0}, {0, 1, 0}, 50,

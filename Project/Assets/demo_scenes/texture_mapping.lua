@@ -1,8 +1,9 @@
 s = 1/8--1/8
 wall_r = 0
 r = {wall_r,wall_r, wall_r}
-mat1 = gr.perlin_material(64, {s,s,s}, {0,1,0}, {0.1,0.1,0.1}, 25, 0, 0, 0, 0, 0)
+-- mat1 = gr.perlin_material(64, {s,s,s}, {0,1,0}, {0.5,0.5,0.5}, 25, 0, 0, 0, 0, 0)
 -- mat4 = gr.cmaterial({1, 1, 1}, {0.1, 0.1, 0.1}, 25, 0.8, 1.1, 0, 0)
+plain_mat = gr.material({0.9,0.9,0.9}, {0.15,0.15,0.15}, 100)
 
 root = gr.node('root')
 
@@ -16,7 +17,7 @@ s6:rotate('y', 25)
 s6:scale(35,35,35)
 s6:translate(40, 35, -10)
 root:add_child(s6)
-s6:set_material(white_mat)
+s6:set_material(plain_mat)
 
 -- Lighting
 point_light = true;

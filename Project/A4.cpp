@@ -41,15 +41,15 @@ vec3 rayColor(vec3 eye,
 			  vec3 ray, 
 			  SceneState* s,
 			  vec3 background,
-			  size_t max_hits = 4, 
+			  size_t max_hits = 5, 
 			  bool inside_solid = false);
 void pvec(vec3 v) { cout << v.x << ", " << v.y << ", " << v.z << endl; }
 
 int cnt1 = 0;
 int cnt2 = 0;
 
-bool ANTI_ALIASING = false;			   	// Enable regular sampling anti aliasing.
-const int ANTI_ALIASING_DIVISIONS = 2;	// Number of subdivisions to make at each pixel.
+bool ANTI_ALIASING = true;			   	// Enable regular sampling anti aliasing.
+const int ANTI_ALIASING_DIVISIONS = 4;	// Number of subdivisions to make at each pixel.
 
 // Number of cores used in first*second
 pair<size_t, size_t> multithreading_kernel(4,2);
@@ -593,7 +593,7 @@ vec3 rayColor(vec3 eye, vec3 ray, SceneState* s,
 			for(AreaLight* area_light: s->area_lights)
 			{
 				// TODO Make lua param to set samples
-				const int samples = 2;
+				const int samples = 3;
 				const float sample_inv = 1.0f/float(samples);
 
 				vec3 area_diffuse(0,0,0);

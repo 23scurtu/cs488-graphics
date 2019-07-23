@@ -1,4 +1,4 @@
-SHOW_EFFECT = true
+SHOW_EFFECT = false
 
 s = 1/8--1/8
 wall_r = 0
@@ -56,7 +56,7 @@ end
 
 white_light = gr.light({0, 190, 50}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
 
-size = 512
+size = 1024
 
 gr.render(root, 'images/output.png', size, size,-- 512, 512, --256, 256, --1024, 1024,
 	  {0, 100, 350}, {0, 100, 0}, {0, 1, 0}, 50,

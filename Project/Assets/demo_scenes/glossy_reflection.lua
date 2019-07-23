@@ -1,4 +1,4 @@
-SHOW_EFFECT = true
+SHOW_EFFECT = false
 
 s = 1/8--1/8
 wall_r = 0
@@ -8,6 +8,7 @@ r = {wall_r,wall_r, wall_r}
 
 grey_shiny_mat = gr.material({0.2,0.2,0.2}, {0.6,0.6,0.6}, 100)
 grey_glossy_mat = gr.cmaterial({0.2,0.2,0.2}, {0.6, 0.6, 0.6}, 100, 0, 0, 0.3, 0)
+grey_glossy_mat_2 = gr.cmaterial({0.2,0.2,0.2}, {0.6, 0.6, 0.6}, 100, 0, 0, 3, 0)
 
 root = gr.node('root')
 
@@ -26,7 +27,7 @@ s2:scale(25,25,25)
 s2:translate(50,25, 25)
 root:add_child(s2)
 if SHOW_EFFECT then
-	s2:set_material(grey_glossy_mat)
+	s2:set_material(grey_glossy_mat_2)
 else
 	s2:set_material(grey_shiny_mat)
 end
@@ -56,7 +57,7 @@ end
 
 white_light = gr.light({0, 190, 50}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
 
-size = 512
+size = 1024
 
 gr.render(root, 'images/output.png', size, size,-- 512, 512, --256, 256, --1024, 1024,
 	  {0, 100, 350}, {0, 100, 0}, {0, 1, 0}, 50,
