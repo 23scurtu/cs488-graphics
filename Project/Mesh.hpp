@@ -51,6 +51,15 @@ struct Texture
 	}
 };
 
+struct OBJMaterial
+{
+	Texture* texture_map = nullptr;
+	Texture* normal_map = nullptr;
+ 
+	OBJMaterial() = default;
+	OBJMaterial(Texture* texture_map, Texture* normal_map): texture_map{texture_map}, normal_map{normal_map} {}
+};
+
 struct Triangle
 {
 	size_t v1;
@@ -127,10 +136,12 @@ private:
 	std::vector<Triangle> m_faces;
 	std::vector<Triangle> m_face_normals;
 
-	std::vector<int> m_texture_ids;
+	std::vector<int> m_material_ids;
 	// std::vector<int> m_normal_map_ids;
-	std::vector<Texture> m_textures;
-	std::vector<Texture> m_normal_maps;
+	// std::vector<Texture> m_textures;
+	// std::vector<Texture> m_normal_maps;
+	std::vector<OBJMaterial> m_materials;
+
 	std::vector<TangentBasis> m_tangents;
 
 	glm::vec2 last_hit_uv_coords;

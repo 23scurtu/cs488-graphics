@@ -114,16 +114,23 @@ Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 
 	for(auto material: materials)
 	{
+		Texture* texture_map = nullptr;
+		Texture* normal_map = nullptr;
+
 		if(!material.diffuse_texname.empty())
 		{
 			m_textured = true;
-			m_textures.emplace_back( basedir + "/" + material.diffuse_texname );
+			texture_map = new Texture(basedir + "/" + material.diffuse_texname);
 		}
+		
 		if(!material.bump_texname.empty())
 		{
 			m_normal_mapped = true;
-			m_normal_maps.emplace_back( basedir + "/" + material.bump_texname );
+			normal_map = new Texture(basedir + "/" + material.bump_texname);
 		}
+
+		m_materials.push_back(OBJMaterial(texture_map, normal_map));
+		
 	}
 
 	// Loop over shapes
@@ -154,7 +161,6 @@ Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 			m_face_normals.push_back( Triangle( shapes[s].mesh.indices[index_offset].normal_index,
 										 		shapes[s].mesh.indices[index_offset+1].normal_index,
 											    shapes[s].mesh.indices[index_offset+2].normal_index));
-			// TODO Load in texture!
 
 			// for (size_t v = 0; v < fv; v++) {
 			// // access to vertex
@@ -180,11 +186,8 @@ Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 
 			// per-face material
 			int material_id = shapes[s].mesh.material_ids[f];
-			// if(material_id != -1) // cout << shapes[s].mesh.material_ids[f] << endl;
-				// cout << materials[material_id].diffuse_texname << endl;
-				// cout << materials.size() << endl;
-				m_texture_ids.push_back(material_id);
-			// cout << "aaaaaaaaaaaaaaaaaaaaaa" << material_id << endl;
+
+			m_material_ids.push_back(material_id);
 		}
 	}
 
@@ -225,6 +228,8 @@ Mesh::Mesh( const std::string& fname, bool PHONG_SHADING )
 	if(m_texture_coords.empty()){ m_textured = false; m_normal_mapped = false; }
 	if(!m_normals.empty()) m_vertex_normals = true;
 	this->PHONG_SHADING = PHONG_SHADING;
+
+	cout << m_textured << ", " << m_normal_mapped << endl;
 
 	const float E = 0.0001;
     aabb = AABB(vec3(min.x-E, min.y-E, min.z-E), 
@@ -318,16 +323,19 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 				const Triangle & tri_texture = m_face_textures[tri_i];
 
 				// If textured update the last hit uv coords and last hit index.
-				if(m_textured && (tri_texture.v1 != -1 && tri_texture.v2 != -1 && tri_texture.v3 != -1))
+				if(/*m_textured && */(tri_texture.v1 != -1 && tri_texture.v2 != -1 && tri_texture.v3 != -1))
 				{
-					// last_hit_uv_coords = vec2(u,v);
 					last_hit_uv_coords = (1 - u - v) * m_texture_coords[tri_texture.v1] + 
-										 u * m_texture_coords[tri_texture.v2] + 
-										 v * m_texture_coords[tri_texture.v3];
+										u * m_texture_coords[tri_texture.v2] + 
+										v * m_texture_coords[tri_texture.v3];
 
 					last_hit_index = tri_i;
 				}
+				// cout << "hi" << endl;
 
+				// last_hit_uv_coords = vec2(u,v);
+	
+				// cout << "bye" << endl;
 				if(PHONG_SHADING && m_vertex_normals && (tri.v1 != -1 && tri.v2 != -1 && tri.v3 != -1)) // TODO ands?
 				{
 					// Additional check if this is texture mapped
@@ -340,6 +348,7 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 					else result.second = interpolated_normal;
 				}
 				else if(m_normal_mapped) result.second = getLastHitNormal();
+				
 			}
 		}
 	}
@@ -349,26 +358,29 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 
 glm::vec3 Mesh::getLastHitColor()
 { 
-	// cout << last_hit_uv_coords.x << ", " << last_hit_uv_coords.y << endl;
-	// TODO No interpolation, simply casts float to int
+	// No interpolation atm, simply casts float to int
 	if(last_hit_index == -1) return vec3(0,0,0);
-	Texture & tex = m_textures[m_texture_ids[ last_hit_index]];
 
-	// cout << "cccccccccccccc" << last_hit_index << endl;
+	Texture * tex = m_materials[m_material_ids[ last_hit_index]].texture_map;
+	if(!tex) return vec3(0,0,0);
 
-	return tex.color(last_hit_uv_coords.x*tex.width, last_hit_uv_coords.y*tex.height); 
-	// TODO Seg faulting due to image not having any elements!
-	// cout << m_mat << endl;
-	// return vec3(last_hit_uv_coords.x, last_hit_uv_coords.y, 1 - last_hit_uv_coords.x - last_hit_uv_coords.y); 
+	return tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height); 
 }
 
 //TODO Change name?
 glm::vec3 Mesh::getLastHitNormal(glm::vec3 *interpolated_normal)
 {
-	if(last_hit_index == -1) return m_tangents[last_hit_index].normal; // Check correct
+	// if(last_hit_index == -1)
+	// {
+	// 	// Should never happen
+	// 	return m_tangents[last_hit_index].normal; // Check correct
+	// } 
 
 	// Make a copy of tangent basis so TBN can be recalculated if needed.
 	TangentBasis tangent_basis = m_tangents[last_hit_index];
+
+	Texture * tex = m_materials[m_material_ids[ last_hit_index]].normal_map;
+	if(!tex) return vec3(0,0,0);
 
 	// If Phong shading, use a new normal passed in thats interpolated.
 	if(interpolated_normal)
@@ -377,17 +389,15 @@ glm::vec3 Mesh::getLastHitNormal(glm::vec3 *interpolated_normal)
 		tangent_basis.calcTBN();
 	}
 
-	Texture & tex = m_normal_maps[m_texture_ids[ last_hit_index]];
-
 	//TODO Interpolate normal
 	//TODO Make function take in ints instead and round here
-	vec3 c00 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width, last_hit_uv_coords.y*tex.height) - vec3(1.0f,1.0f,1.0f);
-	vec3 c01 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width, last_hit_uv_coords.y*tex.height+1) - vec3(1.0f,1.0f,1.0f);
-	vec3 c10 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width+1, last_hit_uv_coords.y*tex.height) - vec3(1.0f,1.0f,1.0f);
-	vec3 c11 = 2.0f*tex.color(last_hit_uv_coords.x*tex.width+1, last_hit_uv_coords.y*tex.height+1) - vec3(1.0f,1.0f,1.0f);
+	vec3 c00 = 2.0f*tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height) - vec3(1.0f,1.0f,1.0f);
+	vec3 c01 = 2.0f*tex->color(last_hit_uv_coords.x*tex->width, last_hit_uv_coords.y*tex->height+1) - vec3(1.0f,1.0f,1.0f);
+	vec3 c10 = 2.0f*tex->color(last_hit_uv_coords.x*tex->width+1, last_hit_uv_coords.y*tex->height) - vec3(1.0f,1.0f,1.0f);
+	vec3 c11 = 2.0f*tex->color(last_hit_uv_coords.x*tex->width+1, last_hit_uv_coords.y*tex->height+1) - vec3(1.0f,1.0f,1.0f);
 
-	float u_p = last_hit_uv_coords.x*tex.width - int(last_hit_uv_coords.x*tex.width);
-	float v_p = last_hit_uv_coords.y*tex.height - int(last_hit_uv_coords.y*tex.height);
+	float u_p = last_hit_uv_coords.x*tex->width - int(last_hit_uv_coords.x*tex->width);
+	float v_p = last_hit_uv_coords.y*tex->height - int(last_hit_uv_coords.y*tex->height);
 
 	// cout << u_p << ", " << v_p << endl;
 
