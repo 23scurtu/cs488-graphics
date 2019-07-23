@@ -15,6 +15,7 @@
 #include "BVH.hpp"
 #include <thread>
 #include <utility>
+#include <atomic>
 
 #include "A4.hpp"
 
@@ -54,6 +55,10 @@ const int ANTI_ALIASING_DIVISIONS = 2;	// Number of subdivisions to make at each
 pair<size_t, size_t> multithreading_kernel(4,2);
 
 const int subdivisions = ANTI_ALIASING_DIVISIONS;
+
+bool PRINT_PROGRESS = true;
+const int progress_prints = 250;
+atomic_int pixels_processed(0);
 
 #define BVH_COLLISION
 // #define RENDER_BVH
@@ -220,6 +225,13 @@ void A4_Render(
 
 						// 1.18*10^-5 s
 						colors[y][x] = rayColor(eye, ray, &state, background(float(x)/float(nx)-1.0f/2, float(y)/float(ny)-1.0f/2));
+						
+						pixels_processed++;
+
+						if(pixels_processed % (w*h/progress_prints) == 0)
+						{
+							cout << float(pixels_processed)/float(w*h)*100 << "% completed." << endl;
+						}
 				}
 			}
 		}
