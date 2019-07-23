@@ -1,0 +1,11 @@
+The following times were recorded with different multithreading kernel shapes on the bvh2.lua scene:
+Antialiasing was on and set to 4. Max hits are 5. No glossy reflections/refractions or soft shadows.
+
+(1x1): 19.67 s
+(2x1): 10.38 s
+(3x1): 7.865 s
+(4x1): 7.514 s
+(2x2): 7.760 s
+(3x2): 7.497 s
+(4x2): 7.543 s
+(3x3): 7.587 s
