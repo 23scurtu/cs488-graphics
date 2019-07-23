@@ -1,16 +1,35 @@
+SHOW_EFFECT = true
+
 s = 1/8--1/8
 wall_r = 0
 r = {wall_r,wall_r, wall_r}
 mat1 = gr.perlin_material(64, {s,s,s}, {0,1,0}, {0.1,0.1,0.1}, 25, 0, 0, 0, 0, 0)
 -- mat4 = gr.cmaterial({1, 1, 1}, {0.1, 0.1, 0.1}, 25, 0.8, 1.1, 0, 0)
+mat2 = gr.material({1,1,1}, {0.1,0.1,0.1}, 25)
 
 root = gr.node('root')
 
 s1 = gr.sphere('s1', {0, 0, 0})
 s1:scale(50,50,50)
-s1:translate(-25,50, -25)
+s1:translate(-35,50, 25)
 root:add_child(s1)
+if SHOW_EFFECT then
 s1:set_material(mat1)
+else
+s1:set_material(mat2)
+end
+
+s2 = gr.cube('s1', {0, 0, 0})
+s2:scale(50,50,50)
+s2:rotate('X', -90)
+s2:rotate('Y', 25)
+s2:translate(50,0, 125)
+root:add_child(s2)
+if SHOW_EFFECT then
+s2:set_material(mat1)
+else
+s2:set_material(mat2)
+end
 
 -- Setup Cornell box
 dofile("cornell_box.lua")
@@ -35,7 +54,7 @@ else
 	root:add_child(white_area_light)
 end
 
-white_light = gr.light({0, 195, 50}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
+white_light = gr.light({0, 190, 50}, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
 
 size = 512
 
