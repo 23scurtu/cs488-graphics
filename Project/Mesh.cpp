@@ -325,12 +325,21 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 				// If textured update the last hit uv coords and last hit index.
 				if(/*m_textured && */(tri_texture.v1 != -1 && tri_texture.v2 != -1 && tri_texture.v3 != -1))
 				{
-					last_hit_uv_coords = (1 - u - v) * m_texture_coords[tri_texture.v1] + 
+					last_hit_mutex.lock();
+
+					thread_last_hit_uv_coords[this_thread::get_id()] = (1 - u - v) * m_texture_coords[tri_texture.v1] + 
 										u * m_texture_coords[tri_texture.v2] + 
 										v * m_texture_coords[tri_texture.v3];
 
-					last_hit_index = tri_i;
+					thread_last_hit_index[this_thread::get_id()] = tri_i;
+
+					last_hit_mutex.unlock();
 				}
+				// else
+				// {
+				// 	last_hit_index = -1;
+				// }
+				
 				// cout << "hi" << endl;
 
 				// last_hit_uv_coords = vec2(u,v);
@@ -359,7 +368,13 @@ std::pair<float, glm::vec3> Mesh::collide(glm::vec3 eye, glm::vec3 ray)
 glm::vec3 Mesh::getLastHitColor()
 { 
 	// No interpolation atm, simply casts float to int
-	if(last_hit_index == -1) return vec3(0,0,0);
+	// if(last_hit_index == -1) {return vec3(0,0,0);}
+
+	last_hit_mutex.lock();
+	auto last_hit_uv_coords = thread_last_hit_uv_coords[this_thread::get_id()]; // Shouldnt need to check if inside, should already be inside!
+	int last_hit_index = thread_last_hit_index[this_thread::get_id()];
+	last_hit_mutex.unlock(); 
+
 
 	Texture * tex = m_materials[m_material_ids[ last_hit_index]].texture_map;
 	if(!tex) return vec3(0,0,0);
@@ -372,9 +387,15 @@ glm::vec3 Mesh::getLastHitNormal(glm::vec3 *interpolated_normal)
 {
 	// if(last_hit_index == -1)
 	// {
-	// 	// Should never happen
-	// 	return m_tangents[last_hit_index].normal; // Check correct
+	// 	return vec3(0,0,0);
+	// 	// // Should never happen
+	// 	// return m_tangents[last_hit_index].normal; // Check correct
 	// } 
+
+	last_hit_mutex.lock();
+	auto last_hit_uv_coords = thread_last_hit_uv_coords[this_thread::get_id()]; // Shouldnt need to check if inside, should already be inside!
+	int last_hit_index = thread_last_hit_index[this_thread::get_id()];
+	last_hit_mutex.unlock(); 
 
 	// Make a copy of tangent basis so TBN can be recalculated if needed.
 	TangentBasis tangent_basis = m_tangents[last_hit_index];

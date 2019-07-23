@@ -10,6 +10,9 @@
 
 #include "Primitive.hpp"
 #include "lodepng/lodepng.h"
+#include <unordered_map>
+#include <thread>
+#include <mutex>
 
 // enum TextureType
 // {
@@ -144,8 +147,9 @@ private:
 
 	std::vector<TangentBasis> m_tangents;
 
-	glm::vec2 last_hit_uv_coords;
-	int last_hit_index;
+	mutex last_hit_mutex;
+	unordered_map<thread::id, glm::vec2> thread_last_hit_uv_coords;
+	unordered_map<thread::id, int> thread_last_hit_index;
 
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 	std::pair<float, glm::vec3> collide(glm::vec3 eye, glm::vec3 ray) override;
