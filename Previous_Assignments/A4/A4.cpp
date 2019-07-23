@@ -145,7 +145,7 @@ void A4_Render(
 
 			if(ANTI_ALIASING)
 			{
-
+				cout << "hey" << endl;
 				vec3 color(0,0,0);
 
 				for(int l = 0; l != subdivisions; l++)
