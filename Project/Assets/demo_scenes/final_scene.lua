@@ -12,7 +12,7 @@ clear_transparent_13_mat = gr.cmaterial({0,0,0}, {0.1,0.1,0.1}, 100, 1, 1.3, 0, 
 
 clear_transparent_1_mat = gr.cmaterial({0.9,0.9,0.9}, {1,1,1}, 100, 1, 1.3, 0, 0)
 
-mirror = gr.material({0.2,0.2,0.2}, {0.75,0.75,0.75}, 100)
+mirror = gr.material({0,0,0}, {0.99,0.99,0.99}, 100)
 double_sided_mirror = gr.cmaterial({0.9,0.9,0.9}, {0.9,0.9,0.9}, 100, 1, 1, 0, 0)
 
 white_mat = gr.material({1, 0.95, 0.8}, r, 25, 0)
@@ -128,9 +128,9 @@ light_pos = {-100, 500, 100}
 
 white_light = gr.light(light_pos, {point_light_brightness,point_light_brightness,point_light_brightness}, {1.2,0,0})--{0,0,0.00008})
 
-size = 4096
+size = 512
 
-gr.render_options(20,true, 2, 3,2,2, {4,2}, 250)
+gr.render_options(25,false, 2, 3,2,2, {4,2}, 100)
 
 gr.render(root, 'images/output.png', size, size,-- 512, 512, --256, 256, --1024, 1024,
 	  {0, 100, 350}, {0, 100, 0}, {0, 1, 0}, 50,

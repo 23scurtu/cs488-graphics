@@ -21,6 +21,16 @@ plane:rotate('X', 90)
 plane:translate(0, 100, -100)
 plane:set_material(white_mat)
 
+-- plane = gr.mesh( 'behind_wall', '../plane.obj' )
+-- root:add_child(plane)
+-- ps = 200
+-- plane:scale(ps, ps, ps)
+-- -- plane:rotate('Y', 90)
+-- plane:rotate('X', 90)
+-- -- plane:rotate('Y', 20)
+-- plane:translate(0, 100, 400)
+-- plane:set_material(white_mat)
+
 plane = gr.mesh( 'left_wall', '../plane.obj' )
 root:add_child(plane)
 ps = 200

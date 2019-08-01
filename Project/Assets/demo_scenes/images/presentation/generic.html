@@ -59,7 +59,7 @@
 
 <html>
 	<head>
-		<title>Generic - Spatial by TEMPLATED</title>
+		<title>Ray Tracer</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="stylesheet" href="assets/css/main.css" />
@@ -102,7 +102,7 @@
 
 					<!-- <a href="javascript:void()" class="image fit"><img  src="../../../../../Previous_Assignments/A4/sample_noAA.png" alt="" /></a> -->
 
-					<p>The extra objective I completed in A4 was regular sampling anti-aliasing.</p>
+					<p>The extra objective I completed in A4 was regular sampling anti-aliasing:</p>
 					<div class="box alt">
 							<div class="row 50% uniform">
 								<div class="4u"><span class="image fit"><img  src="../../../../../Previous_Assignments/A4/sample_noAA.png" alt="" /></a></span></div>
@@ -121,10 +121,10 @@
 
 				<div class="container">
 					<h3>Bump (Normal) Mapping</h3>
-					<p>Implemented for meshes as well. Normals are looked up in a normal map texture in a 
+					<p>Implemented for meshes. Normals are looked up in a normal map texture in a 
 						similar process to texture mapping and bilinearly interpolated to get the intersection
 						normal. Matrices are precomputed to transform the normals in the map from tangent space to 
-						local space for every face of the mesh. The bilinearly interpolated normal is then transformed
+						model space for every face of the mesh. The interpolated normal is then transformed
 						to model space where it is treated as the new intersection normal. The effect is that the normals
 						defined in the normal map are purturbances of the already existing normals of the model.</p>
 					<a href="javascript:void()" class="image fit"><img id="bump_mapping" src="../../images/bump_mapping.png" alt="" 
@@ -134,8 +134,11 @@
 				<div class="container">
 					<h3>Reflection</h3>
 					<p>For every intersection point, a secondary reflection ray is calculated using the ggreflection
-						formula shown in class. The color from that is then multiplied by the specular reflection constants 
+						formula shown in class:
+						<br><code> r = v - 2N(dot(v,N))</code><br>
+						The color from that is then multiplied by the specular reflection constants 
 						and added to the color output.
+						
 					</p>
 					<a href="javascript:void()" class="image fit"><img id="reflection" src="../../images/reflection_walls.png" alt="" 
 						onmousedown="toggle3im('reflection', '../../images/reflection_walls.png',  '../../images/reflection.png', '../../images/reflection_DEFAULT.png')"> </a>
@@ -144,7 +147,9 @@
 				<div class="container">
 					<h3>Refraction</h3>
 					<p>For every intersection point, a secondary transmission ray is calculated using the ggrefraction
-					   formula shown in class which takes into account the index of refraction of the material. The percentage of light that a material allows to pass through it is defined by
+					   formula shown in class which takes into account the index of refraction of the material:
+					   <br><code>t = (-(n_i/n_t)*(v_dot_N) - sqrt(1.0f-(n_i/n_t)*(n_i/n_t)*(1.0f-v_dot_N*v_dot_N)))*N + (n_i/n_t)*v;</code> <br>
+					   The percentage of light that a material allows to pass through it is defined by
 					a transmissivness constant.  The color of the light passing through a material is determined by the complement
 					of the specular color. </p>
 					<a href="javascript:void()" class="image fit"><img id="refraction" src="../../images/refraction.png" alt="" 
@@ -153,21 +158,33 @@
 
 				<div class="container">
 					<h3>Glossy Transmission</h3>
-					<p>A transmitted ray is calculated and new transmissive rays are sampled in a cosine distrobution around it. The number of these rays is configurable.</p>
+					<p>A transmitted ray is calculated and new transmissive rays are sampled in a cosine distribution around it. The number of these rays is configurable.
+						The average color of these new rays is added to the output. The "glossiness" is configurable with the REFRACTIVE_GLOSSINESS material property.
+						<br><code>float alpha = acos(pow(1-uni(), 0.5f* REFRACTIVE_GLOSSINESS) );</code><br>
+						<code>float beta = 2.0f*M_PI*uni();</code>
+					</p>
 					<a href="javascript:void()" class="image fit"><img id="gt" src="../../images/glossy_refraction_AA_8_samples_2.png" alt="" 
 						onmousedown="toggleim('gt', '../../images/glossy_refraction_AA_8_samples_2.png',  '../../images/glossy_refraction_AA_8_samples_2_DEFAULT.png')"> </a>
 				</div>
 
 				<div class="container">
 					<h3>Glossy Reflection</h3>
-					<p>A reflected ray is calculated and new reflective rays are sampled in a cosine distrobution around it. The number of these rays is configurable.</p>
+					<p>A reflected ray is calculated and new reflective rays are sampled in a cosine distribution around it. The number of these rays is configurable.
+						The average of these new rays is added to the output. The "glossiness" is configurable with the REFLECTIVE_GLOSSINESS material property.
+						<br>
+						<code>float exponent = (1.0f/(PHONG_EXPONENT+1))*REFLECTIVE_GLOSSINESS;</code><br>
+						<code>
+								float alpha = acos(pow(1-uni(), exponent )); </code><br>
+								<code>float beta = 2.0f*M_PI*uni();
+						</code>
+					</p>
 					<a href="javascript:void()" class="image fit"><img id="gr" src="../../images/glossy_reflection_AA_8_samples_2_g_3.png" alt="" 
 						onmousedown="toggleim('gr', '../../images/glossy_reflection_AA_8_samples_2_g_3.png',  '../../images/glossy_reflection_AA_8_samples_2_g_3_DEFAULT.png')"> </a>
 				</div>
 
 				<div class="container">
 					<h3>Phong Shading </h3>
-					<p>Implmented for meshes. Normals from each vertex of the intersected face are weighted by their barycentric coordinates to calculate  a new
+					<p>Implemented for meshes. Normals from each vertex of the intersected face are weighted by their barycentric coordinates to calculate  a new
 						normal for the intersection.
 					</p>
 					<a href="javascript:void()" class="image fit"><img id="phong" src="../../images/phong_shading.png" alt="" 
@@ -177,10 +194,10 @@
 				<div class="container">
 					<h3>Perlin Noise (Solid Texturing) </h3>
 					<p>A three dimentional grid of gradients were generated where the gradients are uniformly distributed over a unit sphere.
-						From here, for any given collision points we calculate the dot product between the distance vectors to the 8 nearest corners in the grid 
-						and the gradients are their respective corners.  These represent "influence" values. We then interpolate these from the 
-						by linearly interpolating accross all 3 axis. We can do this for varying sizes of grid to create more "turbulence" (by default perlin Noise
-						has a fairly uniform scaling).  By then feeding the turrbulence and intersection coordinates into a sine function, we can mimic the viens of
+						From here, for any given intersection point we calculate the dot product between the distance vectors to the 8 nearest corners in the grid 
+						and their respective gradients.  These represent "influence" values of each corner. We then interpolate these  
+						by linearly interpolating accross all 3 axis. We can do this for varying sizes of grid to create more "turbulence" (by default perlin noise
+						has a fairly uniform scale).  By then feeding the turbulence and intersection coordinates into a sine function, we can mimic the viens of
 						marble.
 
 						A fade function is also applied to each component of the intersection coordinate to provide a smoother transition between gradients.
@@ -191,7 +208,7 @@
 
 				<div class="container">
 					<h3>Soft Shadows </h3>
-					<p>Implemented area lights.  For any intersection point, rather than calculating a single shadow ray to a point light, we sample the area light
+					<p>Implemented using square area lights.  For any intersection point, rather than calculating a single shadow ray to a point light, we sample the area light
 						for multiple points, calculate shadow rays to each of these points, and take the average (success rate).  This is the brightness from that light source
 						at the intersection point.
 					</p>
@@ -201,8 +218,8 @@
 
 				<div class="container">
 					<h3>Final Scene</h3>
-					<a href="javascript:void()" class="image fit"><img  src="../../images/final_scene.png" alt="" /></a>
-					<!-- <p></p> -->
+					<a href="../../images/final_scene_HD.png" class="image fit"><img  src="../../images/final_scene.png" alt="" /></a>
+					<!-- <a href="/home/victor/Desktop/cs488/Project/Assets/demo_scenes/images/final_scene_HD.png">(8192x8192)</a> -->
 				</div>
 
 				<div class="container">
@@ -218,11 +235,14 @@
 
 				<div class="container">
 					<h3>Bounding Volume Hierarchy</h3>
-					<p>Every primitive is required to define an axis-aligned bounding box (AABB) for itself in model coordinates.  All of these bounding boxes are then translated to 
-							world coordiantes.  From here we can construct a hierarchy using the following steps. Calculate the AABB which encapsulates all AABB's in the scene, This is our current nodes bounding box.
-							Take its longest side and order all primtives base on the midpoint of their AABB.  Split this list in half and recurse to make the left and right nodes.  Its worth noting that since these 
+					<p>Every primitive is required to define an axis-aligned bounding box (AABB) for itself in model coordinates.  All of these bounding boxes are then transformed to 
+							world coordiantes.  From here we can construct a hierarchy using the following steps. Calculate the AABB which encapsulates all AABB's in the scene. This is our current nodes bounding box.
+							Take its longest side and order all primtives based on the midpoint of their AABB.  Split this list in half and recurse to make the left and right nodes.  Its worth noting that since these 
 							are always AABB's, if a rotation is applied when transformed to world coorinates, they may grow a bit (within a bounded limit) such that they are slightly oversized.
-							In the following pictures, using the BVH increased performance from 152.35 to 5.688 seconds and 55.944 to 8.452 seconds respectively. Both tests were run with 4x4 anti aliasing and 4x2 multithreading.
+							In the following pictures, using the BVH increased performance from <b>152.35 to 5.688 seconds</b> and <b>55.944 to 8.452 seconds</b> respectively. Both tests were run with 4x4 anti aliasing and 4x2 multithreading.
+							<br>
+							<br>
+							For the visualizations below, the redness at each pixel represents how many primitives were considered for intersection testing after traversing the tree.
 						</p>
 					<a href="javascript:void()" class="image fit"><img id="bvh1" src="../../images/bvh_threads_4x2_AA_4_5.688s.png" alt="" 
 						onmousedown="toggleim('bvh1', '../../images/bvh_threads_4x2_AA_4_5.688s.png',  '../../images/bvh_AA_4_visualized.png')"> </a>
@@ -232,10 +252,9 @@
 
 				<div class="container">
 						<h3>Parallelization</h3>
-						<p>Implmented using multithreading to calcualte different subsets of the final images pixels.  In order to keep the load on each thread roughly equal,
+						<p>Implemented using multithreading to calculate different subsets of the final images pixels.  In order to keep the load on each thread roughly equal,
 							the image was split into non overlapping rectangles (each the area of the number of threads) and each thread would then work on one pixel (always in the 
-							same location relative to the rectangle) in every rectangle.  This has the effect of evenly spreading the pixels each thread works on accross the whole image
-							as much as possible.  
+							same location relative to the rectangle) in every rectangle.  This has the effect of evenly spreading the pixels each thread works on accross the whole image.  
 
 							The following times were recorded with different multithreading kernel shapes on the bvh2.lua scene:
 							(Antialiasing was on and set to 4. Max hits are 5. No glossy reflections/refractions or soft shadows)
@@ -249,6 +268,7 @@
 							<br>(4x2): 7.543 s
 							<br>(3x3): 7.587 s
 							
+							<br>This was run on my 4-core laptop.  Performance did not increase significantly after 4 threads.
 						</p>
 					</div>
 				
